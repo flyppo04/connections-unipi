@@ -1,0 +1,7 @@
+sistemae persitenza user 1-100
+sistemare utf-8 nei game
+sistemare gameid deve essre progerssivo e non ogni volta riiniziare
+controllare e sitemare robe in note
+scrivere commenti
+pulire codice
+scrivere documentazione

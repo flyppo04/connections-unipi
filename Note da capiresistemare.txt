@@ -1,0 +1,14 @@
+Note da capire/sistemare:
+
+
+CommandHandler.java
+
+Nota sul Commento nel Codice
+Il bug segnalato nel commento dentro handleGameInfo è reale: basterebbe aggiungere un controllo game.isExpired() prima di verificare state.hasFinished() per distinguere correttamente partita storica da partita in corso.
+
+
+PlayerGamsestate.java
+
+Nota su Thread-Safety
+PlayerGameState non è thread-safe internamente (ArrayList non sincronizzate, campi primitivi non volatile). La sicurezza è garantita a livello superiore da ConcurrentHashMap in Game e dalla logica in GameManager.submitProposal() che usa la copia locale di currentGame. Tuttavia, se due worker thread gestissero lo stesso utente contemporaneamente, ci sarebbe una race condition su addCorrectGroup/addMistake → da verificare se CommandHandler ha protezioni a riguardo.
+

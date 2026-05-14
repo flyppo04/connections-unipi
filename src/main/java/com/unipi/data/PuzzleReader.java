@@ -31,7 +31,10 @@ public class PuzzleReader {
         }
     }
 
-    public synchronized PuzzleData getNextPuzzle() {
+    // se volessi fare che invece di ripartire da 0 ogni riavvio partisse da dove si era "fermato"
+    // precedentemente potrei passare a getNextPuzzle il gameid e usare quello per pesacre puzzle 
+    // però sto msichiando concetti che dovrebbero essere diversi  
+    public synchronized PuzzleData getNextPuzzle() { 
         PuzzleData next = allPuzzles.get(currentIndex);
         currentIndex = (currentIndex + 1) % allPuzzles.size();
         return next;

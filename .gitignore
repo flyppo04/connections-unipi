@@ -4,9 +4,12 @@ target/
 .idea/
 .vscode/
 *.log
+*.zip
+*.txt
 
 users.json
 gameId.json
 games/
 data/games/
 data/users.json
+

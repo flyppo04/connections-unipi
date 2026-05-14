@@ -307,12 +307,12 @@ public class CommandHandler {
 
         PlayerGameState state = game.getPlayerState(user.getUsername());
 
-        if (state == null || !state.hasFinished()) {
-            // Partita in corso per questo giocatore
-            res.addProperty("inProgress",    true);
-            res.addProperty("timeLeft",       game.getRemainingTimeInSeconds());
-            res.addProperty("mistakes",       state != null ? state.getMistakes()  : 0);
-            res.addProperty("currentScore",   state != null ? state.getScore()     : 0);
+        if (!game.isExpired()) {
+            // La partita è ancora in corso globalmente
+            res.addProperty("inProgress", true);
+            res.addProperty("timeLeft", game.getRemainingTimeInSeconds());
+            res.addProperty("mistakes", state != null ? state.getMistakes() : 0);
+            res.addProperty("currentScore", state != null ? state.getScore() : 0);
 
             JsonArray found = new JsonArray();
             if (state != null) state.getCorrectGroupsFound().forEach(found::add);
@@ -325,13 +325,21 @@ public class CommandHandler {
             res.add("wordsRemaining", remArr);
 
         } else {
-            // Partita conclusa: mostra la soluzione completa
-            res.addProperty("inProgress",         false);
-            res.addProperty("isWinner",            state.isWinner());
-            res.addProperty("mistakes",            state.getMistakes());
-            res.addProperty("finalScore",          state.getScore());
-            res.addProperty("correctGroupsCount",  state.getCorrectGroupsFound().size());
+            // La partita è conclusa
+            res.addProperty("inProgress", false);
 
+            if (state != null) {
+                // L'utente ha partecipato → mostra i suoi dati personali
+                res.addProperty("isWinner", state.isWinner());
+                res.addProperty("mistakes", state.getMistakes());
+                res.addProperty("finalScore", state.getScore());
+                res.addProperty("correctGroupsCount", state.getCorrectGroupsFound().size());
+            } else {
+                // L'utente non ha partecipato a questa partita
+                res.addProperty("participated", false);
+            }
+
+            // La soluzione completa si mostra sempre (partita finita)
             JsonObject solution = new JsonObject();
             game.getConnections().forEach((theme, wordList) -> {
                 JsonArray wa = new JsonArray();

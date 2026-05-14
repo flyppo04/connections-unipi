@@ -3,9 +3,11 @@ package com.unipi.data;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 
-import java.io.FileReader;
+import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.lang.reflect.Type;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 public class PuzzleReader {
@@ -13,7 +15,7 @@ public class PuzzleReader {
     private int currentIndex = 0;
 
     public PuzzleReader(String filePath) {
-        try (FileReader reader = new FileReader(filePath)) {
+        try (InputStreamReader reader = new InputStreamReader(new FileInputStream(filePath), StandardCharsets.UTF_8)) {
             Gson gson = new Gson();
             Type listType = new TypeToken<List<PuzzleData>>() {}.getType();
             List<PuzzleData> loaded = gson.fromJson(reader, listType);

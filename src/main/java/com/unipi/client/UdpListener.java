@@ -23,7 +23,6 @@ public class UdpListener implements Runnable {
 
     private static final int BUFFER_SIZE = 8192;
 
-    private final int            udpPort;
     private       DatagramSocket socket;
     private volatile boolean     running = true;
 
@@ -36,7 +35,6 @@ public class UdpListener implements Runnable {
     }
 
     public UdpListener(int udpPort) throws SocketException {
-        this.udpPort = udpPort;
         this.socket  = new DatagramSocket(udpPort);
         System.out.println("[UDP] In ascolto sulla porta " + udpPort);
     }

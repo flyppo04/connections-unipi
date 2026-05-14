@@ -122,7 +122,7 @@ public class PersistenceManager {
     public int loadGameId() {
         File f = new File(GAME_ID_FILE);
         if (!f.exists()) return 1; // primo avvio
-        try (Reader r = new FileReader(f)) {
+        try (Reader r = new InputStreamReader(new FileInputStream(f), StandardCharsets.UTF_8)) {
             JsonObject obj = gson.fromJson(r, JsonObject.class);
             return obj != null && obj.has("GameId") ? obj.get("GameId").getAsInt() : 1;
         } catch (IOException e) {
@@ -135,7 +135,7 @@ public class PersistenceManager {
         File f = new File(filePath);
         if (!f.exists()) return new ArrayList<>();
 
-        try (Reader r = new FileReader(f)) {
+        try (Reader r = new InputStreamReader(new FileInputStream(f), StandardCharsets.UTF_8)) {
             JsonArray array = gson.fromJson(r, JsonArray.class);
             if (array == null) return new ArrayList<>();
 

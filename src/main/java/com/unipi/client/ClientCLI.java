@@ -95,16 +95,18 @@ public class ClientCLI {
 
     private boolean menuLogged() throws IOException {
         System.out.println("\n--- MENU GIOCO [" + loggedInUser + "] ---");
-        System.out.println("1.  Invia proposta");
-        System.out.println("2.  Stato partita corrente");
-        System.out.println("3.  Statistiche partita (per ID)");
-        System.out.println("4.  Classifica completa");
-        System.out.println("5.  Top K giocatori");
-        System.out.println("6.  Posizione in classifica di un giocatore");
-        System.out.println("7.  Le mie statistiche");
-        System.out.println("8.  Aggiorna credenziali");
-        System.out.println("9.  Logout");
-        System.out.println("0.  Esci");
+        System.out.println("1.   Invia proposta");
+        System.out.println("2.   Stato personale partita corrente");
+        System.out.println("3.   Info personale partita passata (per ID)");
+        System.out.println("4.   Statistiche generali partita corrente");
+        System.out.println("5.   Statistiche generali partita passata (per ID)");
+        System.out.println("6.   Classifica completa");
+        System.out.println("7.   Top K giocatori");
+        System.out.println("8.   Posizione in classifica di un giocatore");
+        System.out.println("9.   Le mie statistiche");
+        System.out.println("10.  Aggiorna credenziali");
+        System.out.println("11.  Logout");
+        System.out.println("0.   Esci");
         System.out.print("> ");
 
         String choice = scanner.nextLine().trim();
@@ -112,12 +114,14 @@ public class ClientCLI {
             case "1" -> { doSubmitProposal();       yield true; }
             case "2" -> { doGameInfo(-1);           yield true; }
             case "3" -> { doGameInfoById();         yield true; }
-            case "4" -> { doLeaderboard(null, 0);   yield true; }
-            case "5" -> { doTopK();                 yield true; }
-            case "6" -> { doPlayerRank();           yield true; }
-            case "7" -> { doPlayerStats();          yield true; }
-            case "8" -> { doUpdateCredentials();    yield true; }
-            case "9" -> { doLogout();               yield true; }
+            case "4" -> { doGameStats(-1);          yield true; }
+            case "5" -> { doGameStatsById();        yield true; }
+            case "6" -> { doLeaderboard(null, 0);   yield true; }
+            case "7" -> { doTopK();                 yield true; }
+            case "8" -> { doPlayerRank();           yield true; }
+            case "9" -> { doPlayerStats();          yield true; }
+            case "10" -> { doUpdateCredentials();    yield true; }
+            case "11" -> { doLogout();               yield true; }
             case "0" -> { doLogout();               yield false; }
             default  -> { System.out.println("Scelta non valida."); yield true; }
         };
@@ -319,6 +323,12 @@ public class ClientCLI {
         System.out.print("ID partita (-1 per corrente): ");
         int id = readInt(-1);
         doGameInfo(id);
+    }
+
+    private void doGameStatsById() throws IOException {
+        System.out.print("ID partita (-1 per corrente): ");
+        int id = readInt(-1);
+        doGameStats(id);
     }
 
     private void doGameStats(int gameId) throws IOException {

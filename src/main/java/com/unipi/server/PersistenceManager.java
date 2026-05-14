@@ -37,6 +37,7 @@ public class PersistenceManager {
     private final String gamesDir;
     private final UserManager userManager;
     private final Gson gson = new GsonBuilder().setPrettyPrinting().create();
+    private static final String GAME_ID_FILE = "gameId.json";
 
     private volatile boolean usersDirty = false;
     private ScheduledExecutorService scheduler;
@@ -110,6 +111,24 @@ public class PersistenceManager {
             }
         }
         return null;
+    }
+
+    public void saveGameId(int gameId) {
+        JsonObject obj = new JsonObject();
+        obj.addProperty("GameId", gameId);
+        writeJson(GAME_ID_FILE, obj);
+    }
+
+    public int loadGameId() {
+        File f = new File(GAME_ID_FILE);
+        if (!f.exists()) return 1; // primo avvio
+        try (Reader r = new FileReader(f)) {
+            JsonObject obj = gson.fromJson(r, JsonObject.class);
+            return obj != null && obj.has("GameId") ? obj.get("GameId").getAsInt() : 1;
+        } catch (IOException e) {
+            System.err.println("[PERSIST] Errore lettura gameId: " + e.getMessage());
+            return 1;
+        }
     }
 
     private List<Game> loadCompletedGames(String filePath) {

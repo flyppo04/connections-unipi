@@ -110,7 +110,7 @@ public class GameManager {
         this.puzzleReader        = puzzleReader;
         this.userManager         = userManager;
         this.gameDurationSeconds = gameDurationSeconds;
-        this.nextGameId          = new AtomicInteger(1);
+        this.nextGameId          = new AtomicInteger(persistenceManager.loadGameId());
         this.scheduler           = Executors.newScheduledThreadPool(1);
         this.persistenceManager  = persistenceManager;
         this.onGameEnd           = null;
@@ -147,6 +147,9 @@ public class GameManager {
         // PuzzleReader gestisce internamente l'indice e il wrap-around
         PuzzleData puzzle = puzzleReader.getNextPuzzle();
         int gameId = nextGameId.getAndIncrement();
+
+        persistenceManager.saveGameId(gameId);
+
 
         // Estrai le 16 parole già mescolate dal puzzle
         List<String> words = puzzle.getAllShuffledWords();
@@ -270,7 +273,7 @@ public class GameManager {
 
         // Avvia immediatamente la partita successiva
         startNewGame();
-
+        
         if (onNewGame != null) {
             onNewGame.onNewGame(currentGame); // game è già la nuova partita
         }

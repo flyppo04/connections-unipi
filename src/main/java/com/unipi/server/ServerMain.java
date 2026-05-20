@@ -383,10 +383,7 @@ public class ServerMain {
 
                 if (buf.hasRemaining()) {
                 System.err.println(
-                    "[TCP WARN] Scrittura parziale verso " + safeAddr(channel) +
-                    " - inviati solo " + (buf.limit() - buf.remaining()) +
-                    " byte su " + buf.limit()
-                );
+                    "[TCP WARN] Scrittura parziale verso " + safeAddr(channel));
                 
             }
 

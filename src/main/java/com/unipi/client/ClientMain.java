@@ -17,6 +17,20 @@ public class ClientMain {
         int    tcpPort = Integer.parseInt(config.getProperty("server.tcp.port", "5000"));
         int    udpPort = Integer.parseInt(config.getProperty("client.udp.port", "6000"));
 
+
+
+        
+
+        //test!!!!!!
+        if (args.length >= 1 && args[0] != null && !args[0].isBlank()) {
+            udpPort = Integer.parseInt(args[0]);
+        }
+
+
+
+
+
+
         try {
             ServerConnection connection = new ServerConnection(host, tcpPort);
             UdpListener      udpListener = new UdpListener(udpPort);

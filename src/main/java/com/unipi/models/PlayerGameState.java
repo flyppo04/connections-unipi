@@ -52,11 +52,11 @@ public class PlayerGameState {
     }
     
     public synchronized List<String> getCorrectGroupsFound() {
-        return correctGroupsFound;
+        return List.copyOf(correctGroupsFound);
     }
     
     public synchronized List<String> getWordsAlreadyFound() {
-        return wordsAlreadyFound;
+        return List.copyOf(wordsAlreadyFound);
     }
 
     public synchronized boolean isWinner() {

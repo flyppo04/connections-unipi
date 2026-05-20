@@ -188,6 +188,7 @@ public class GameManager {
      * @param words    lista di 4 parole proposte
      * @return ProposalResult che descrive l'esito
      */
+
     public ProposalResult submitProposal(String username, List<String> words) {
         // Copia locale — evita race condition se currentGame cambia
         // mentre questo metodo è in esecuzione
@@ -201,42 +202,52 @@ public class GameManager {
         game.addPlayer(username);
         PlayerGameState state = game.getPlayerState(username);
 
-        // Il giocatore ha già finito (vinto o perso per errori)
-        if (state.hasFinished()) {
-            return ProposalResult.GAME_ALREADY_OVER;
+        if (state == null) {
+            return ProposalResult.NO_ACTIVE_GAME;
         }
-
-        // Validazione strutturale della proposta
-        ProposalResult validationResult = validateProposal(words, state, game);
-        if (validationResult != null) {
-            return validationResult;
-        }
-
-        // Cerca il gruppo corrispondente tra quelli non ancora trovati
-        String matchedTheme = findMatchingGroup(words, game, state);
-
-        if (matchedTheme != null) {
-            // Proposta corretta — passa tema e parole a addCorrectGroup()
-            // come si aspetta la firma del tuo PlayerGameState
-            List<String> groupWords = game.getConnections().get(matchedTheme);
-            state.addCorrectGroup(matchedTheme, groupWords);
-
-            // Se hasFinished() è diventato true dentro addCorrectGroup(),
-            // aggiorna le statistiche dell'utente
+        
+    
+        // Lock per singolo giocatore: rende atomica la sequenza
+        // check hasFinished -> valida proposta -> aggiorna stato/statistiche,
+        // evitando race con il timer di fine partita sullo stesso PlayerGameState.
+        synchronized (state){
+            // Il giocatore ha già finito (vinto o perso per errori)
             if (state.hasFinished()) {
-                updateUserStatsOnFinish(username, state);
+                return ProposalResult.GAME_ALREADY_OVER;
             }
-            return ProposalResult.CORRECT;
-
-        } else {
-            // Proposta sbagliata
-            state.addMistake();
-
-            // Se addMistake() ha portato hasFinished a true (4 errori)
-            if (state.hasFinished()) {
-                updateUserStatsOnFinish(username, state);
+    
+            // Validazione strutturale della proposta
+            ProposalResult validationResult = validateProposal(words, state, game);
+            if (validationResult != null) {
+                return validationResult;
             }
-            return ProposalResult.WRONG;
+    
+            // Cerca il gruppo corrispondente tra quelli non ancora trovati
+            String matchedTheme = findMatchingGroup(words, game, state);
+    
+            if (matchedTheme != null) {
+                // Proposta corretta — passa tema e parole a addCorrectGroup()
+                // come si aspetta la firma del tuo PlayerGameState
+                List<String> groupWords = game.getConnections().get(matchedTheme);
+                state.addCorrectGroup(matchedTheme, groupWords);
+    
+                // Se hasFinished() è diventato true dentro addCorrectGroup(),
+                // aggiorna le statistiche dell'utente
+                if (state.hasFinished()) {
+                    updateUserStatsOnFinish(username, state);
+                }
+                return ProposalResult.CORRECT;
+    
+            } else {
+                // Proposta sbagliata
+                state.addMistake();
+    
+                // Se addMistake() ha portato hasFinished a true (4 errori)
+                if (state.hasFinished()) {
+                    updateUserStatsOnFinish(username, state);
+                }
+                return ProposalResult.WRONG;
+            }  
         }
     }
 
@@ -257,10 +268,17 @@ public class GameManager {
 
         // Forza la fine per tutti i giocatori che non hanno ancora terminato
         for (Map.Entry<String, PlayerGameState> entry : game.getPlayerStates().entrySet()) {
+
+            String username = entry.getKey();
             PlayerGameState state = entry.getValue();
-            if (!state.hasFinished()) {
-                state.forceTimeOut();  // usa il tuo metodo forceTimeOut()
-                updateUserStatsOnTimeout(entry.getKey(), state);
+
+            // Lock sul PlayerGameState del singolo utente: evita che timeout e
+            // submitProposal chiudano/modifichino contemporaneamente lo stesso player.
+            synchronized (state){
+                if (!state.hasFinished()) {
+                    state.forceTimeOut();  // usa il tuo metodo forceTimeOut()
+                    updateUserStatsOnTimeout(username, state);
+                }
             }
         }
 
@@ -295,11 +313,13 @@ public class GameManager {
 
         if (state.isWinner()) {
             // puzzlesTracker[n. errori] = vinto con n. errori
-            user.getPuzzlesTracker()[state.getMistakes()]++;
+            //user.getPuzzlesTracker()[state.getMistakes()]++;
+            user.recordWinWithMistakes(state.getMistakes());
             user.updateCurentStreak();   // usa il nome esatto del tuo metodo
         } else {
             // puzzlesTracker[4] = perso per 4 errori
-            user.getPuzzlesTracker()[4]++;
+            //user.getPuzzlesTracker()[4]++;
+            user.recordLossByMistakes();
             user.resetCurrentStreak();
         }
     }
@@ -314,7 +334,8 @@ public class GameManager {
         user.addScore(state.getScore());
 
         // puzzlesTracker[5] = non finito in tempo
-        user.getPuzzlesTracker()[5]++;
+        //user.getPuzzlesTracker()[5]++;
+        user.recordTimeout();
         user.resetCurrentStreak();
     }
 

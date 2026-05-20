@@ -53,8 +53,10 @@ public class UserManager {
     /** Utenti attualmente loggati: username -> canale NIO */
     private final ConcurrentHashMap<String, SocketChannel> loggedInUsers;
 
-    /** Mappa inversa: canale NIO -> username (per identificare mittente) */
+    /** Mappa inversa: canale NIO -> username (per identificare mittente) */    
     private final ConcurrentHashMap<SocketChannel, String> channelToUser;
+
+    private final Object userStateLock = new Object();
 
     // -------------------------------------------------------------------------
     // Costruttore
@@ -159,13 +161,17 @@ public class UserManager {
             return LoginResult.WRONG_PASSWORD;
         }
 
-        if (loggedInUsers.containsKey(username)) {
-            return LoginResult.ALREADY_LOGGED_IN;
-        }
+        synchronized (userStateLock) {
 
-        loggedInUsers.put(username, channel);
-        channelToUser.put(channel, username);
-        return LoginResult.SUCCESS;
+            if (loggedInUsers.containsKey(username)) {
+                return LoginResult.ALREADY_LOGGED_IN;
+            }
+    
+            loggedInUsers.put(username, channel);
+            channelToUser.put(channel, username);
+            return LoginResult.SUCCESS;
+
+        }
     }
 
     /**
@@ -173,12 +179,16 @@ public class UserManager {
      * Chiamato anche quando un canale si disconnette inaspettatamente.
      */
     public LogoutResult logout(SocketChannel channel) {
-        String username = channelToUser.remove(channel);
+        synchronized (userStateLock) {
 
-        if (username == null) return LogoutResult.USER_NOT_LOGGED_IN;
-
-        loggedInUsers.remove(username);
-        return LogoutResult.SUCCESS;
+            String username = channelToUser.remove(channel);
+    
+            if (username == null) return LogoutResult.USER_NOT_LOGGED_IN;
+    
+            loggedInUsers.remove(username);
+            return LogoutResult.SUCCESS;
+            
+        }
     }
 
     /**
@@ -186,51 +196,42 @@ public class UserManager {
      * Richiede la password attuale come conferma.
      */
     public UpdateResult updateCredentials(String oldUsername, String oldPassword,
-                                          String newUsername, String newPassword) {
-        // Almeno una modifica deve essere richiesta
+                                        String newUsername, String newPassword) {
         if ((newUsername == null || newUsername.isBlank()) &&
             (newPassword == null || newPassword.isBlank())) {
             return UpdateResult.INVALID_INPUT;
         }
 
-        User user = registeredUsers.get(oldUsername);
-        if (user == null) return UpdateResult.USER_NOT_FOUND;
+        synchronized (userStateLock) {
+            User user = registeredUsers.get(oldUsername);
+            if (user == null) return UpdateResult.USER_NOT_FOUND;
 
-        if (!user.getPassword().equals(oldPassword)) {
-            return UpdateResult.WRONG_PASSWORD;
-        }
-
-        // Aggiornamento username
-        if (newUsername != null && !newUsername.isBlank()) {
-            if (registeredUsers.containsKey(newUsername)) {
-                return UpdateResult.NEW_USERNAME_TAKEN;
+            if (!user.getPassword().equals(oldPassword)) {
+                return UpdateResult.WRONG_PASSWORD;
             }
-            // Rimozione e reinserimento atomici: prima aggiungi, poi rimuovi con syncronized per eviarre race codnition
-            synchronized (registeredUsers) {
-                // Double-checked locking
+
+            if (newUsername != null && !newUsername.isBlank() && !oldUsername.equals(newUsername)) {
                 if (registeredUsers.containsKey(newUsername)) {
                     return UpdateResult.NEW_USERNAME_TAKEN;
                 }
-                
-                registeredUsers.put(newUsername, user);
+
                 registeredUsers.remove(oldUsername);
                 user.setUsername(newUsername);
+                registeredUsers.put(newUsername, user);
+
+                SocketChannel ch = loggedInUsers.remove(oldUsername);
+                if (ch != null) {
+                    loggedInUsers.put(newUsername, ch);
+                    channelToUser.put(ch, newUsername);
+                }
             }
 
-            // Aggiorna anche le mappe di login se era loggato
-            SocketChannel ch = loggedInUsers.remove(oldUsername);
-            if (ch != null) {
-                loggedInUsers.put(newUsername, ch);
-                channelToUser.put(ch, newUsername);
+            if (newPassword != null && !newPassword.isBlank()) {
+                user.setPassword(newPassword);
             }
-        }
 
-        // Aggiornamento password
-        if (newPassword != null && !newPassword.isBlank()) {
-            user.setPassword(newPassword);
+            return UpdateResult.SUCCESS;
         }
-
-        return UpdateResult.SUCCESS;
     }
 
     // -------------------------------------------------------------------------

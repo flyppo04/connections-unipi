@@ -39,35 +39,35 @@ public class PlayerGameState {
     
 
     
-    public String getUsername() {
+    public synchronized String getUsername() {
         return username;
     }
 
-    public int getMistakes() {
+    public  synchronized int getMistakes() {
         return mistakes;
     }
     
-    public int getScore() {
+    public synchronized int getScore() {
         return score;
     }
     
-    public List<String> getCorrectGroupsFound() {
+    public synchronized List<String> getCorrectGroupsFound() {
         return correctGroupsFound;
     }
     
-    public List<String> getWordsAlreadyFound() {
+    public synchronized List<String> getWordsAlreadyFound() {
         return wordsAlreadyFound;
     }
 
-    public boolean isWinner() {
+    public synchronized boolean isWinner() {
         return isWinner;
     }
 
-    public boolean hasFinished() {
+    public synchronized boolean hasFinished() {
         return hasFinished;
     }
     
-    public void addCorrectGroup(String groupName, List<String> wordsOfGroup) {
+    public synchronized  void addCorrectGroup(String groupName, List<String> wordsOfGroup) {
         if (hasFinished) return;
 
         if (this.correctGroupsFound.contains(groupName)) {
@@ -84,24 +84,22 @@ public class PlayerGameState {
         }
     }
 
-    public int getNumberOfCorrectGroupsFound() {
+    public synchronized int getNumberOfCorrectGroupsFound() {
         return correctGroupsFound.size();
     }
     
     // Qui dentro metti i metodi specifici per l'utente, es:
-    public void addMistake() {
+    public synchronized  void addMistake() {
         if (hasFinished) return;
         this.mistakes++;
-        this.score -= 4; // Il PDF dice penalità di -4 per errore
+        this.score -= 4;
         if (this.mistakes >= 4) {
             this.hasFinished = true; // Ha perso
         }
     }
 
-    
 
-
-    public void forceTimeOut() {
+    public synchronized  void forceTimeOut() {
         // Se non aveva già finito per conto suo, finisce ora (e non è un vincitore)
         if (!this.hasFinished) {
             this.hasFinished = true;

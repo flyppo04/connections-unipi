@@ -27,29 +27,29 @@ public class User {
         this.puzzlesTracker = new int[6];
     }
     
-    public String getUsername() {
+    public synchronized String getUsername() {
         return username;
     } 
 
-    public String getPassword() {
+    public synchronized String getPassword() {
         return password;
     }
 
     // Setter per username (serve per updateCredentials)
-    public void setUsername(String username) {
+    public synchronized void setUsername(String username) {
         this.username = username;
     }
 
     // Setter per password (serve per updateCredentials)
-    public void setPassword(String password) {
+    public synchronized void setPassword(String password) {
         this.password = password;
     }
 
-    public int getCurrentStreak() {
+    public synchronized int getCurrentStreak() {
         return currentStreak;
     }
 
-    public void updateCurentStreak() {
+    public synchronized void updateCurentStreak() {
         this.currentStreak += 1;
 
         if (currentStreak > this.getMaxStreak()){
@@ -58,19 +58,19 @@ public class User {
 
     }
 
-    public void resetCurrentStreak() {
+    public synchronized void resetCurrentStreak() {
         this.currentStreak = 0; 
     }
 
-    public int getMaxStreak() {
+    public synchronized int getMaxStreak() {
         return maxStreak;
     }
 
-    public void setMaxStreak(int newMaxStreak) {
+    public synchronized void setMaxStreak(int newMaxStreak) {
         this.maxStreak = newMaxStreak;
     }
 
-    public int getPuzzlesCompleted(){
+    public synchronized int getPuzzlesCompleted(){
 
         int totPuzzles = 0;
 
@@ -82,7 +82,7 @@ public class User {
 
     }
 
-    public float getWinRate() {
+    public synchronized float getWinRate() {
 
         int totPuzzles = getPuzzlesCompleted();
 
@@ -96,7 +96,7 @@ public class User {
         
     }
 
-    public float getLossRate() {
+    public synchronized float getLossRate() {
 
         int totPuzzles = getPuzzlesCompleted();
 
@@ -111,13 +111,27 @@ public class User {
         
     }
 
-    public int getPerfectWins() {
+    public synchronized int getPerfectWins() {
         return puzzlesTracker[0];
     }
 
 
-    public int[] getPuzzlesTracker() {
-        return puzzlesTracker;
+    public synchronized int[] getPuzzlesTracker() {
+        return puzzlesTracker.clone();
+    }
+
+    public synchronized void recordTimeout() { 
+        puzzlesTracker[5]++; 
+    }
+    
+    public synchronized void recordLossByMistakes() { 
+        puzzlesTracker[4]++; 
+    }    
+    
+
+    public synchronized void recordWinWithMistakes(int mistakes) { 
+        puzzlesTracker[mistakes]++; 
+
     }
 
     // Getter per il punteggio totale (serve per la classifica)
@@ -125,11 +139,11 @@ public class User {
     // Per ora puoi aggiungerlo come campo separato da aggiornare 
     // ogni volta che una partita finisce:
     
-    public int getTotalScore() {
+    public synchronized int getTotalScore() {
         return totalScore;
     }
 
-    public void addScore(int points) {
+    public synchronized void addScore(int points) {
         this.totalScore += points;
     }
 

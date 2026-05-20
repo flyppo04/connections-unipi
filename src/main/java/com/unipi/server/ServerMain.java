@@ -382,11 +382,8 @@ public class ServerMain {
                 channel.write(buf);
 
                 if (buf.hasRemaining()) {
-                System.err.println(
-                    "[TCP WARN] Scrittura parziale verso " + safeAddr(channel));
-                
-            }
-
+                    System.err.println("[TCP WARN] Scrittura parziale verso " + safeAddr(channel));   
+                }
             }
             System.out.println("[OUT] " + response);
         } catch (IOException e) {

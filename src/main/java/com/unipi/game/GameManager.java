@@ -413,7 +413,11 @@ public class GameManager {
             // Salta i gruppi già trovati da questo giocatore
             if (state.getCorrectGroupsFound().contains(theme)) continue;
 
-            Set<String> groupWords = new HashSet<>(entry.getValue());
+            Set<String> groupWords = new HashSet<>();
+            for (String gw : entry.getValue()) {
+                groupWords.add(gw.toUpperCase());
+            }
+
             if (groupWords.equals(proposed)) {
                 return theme;
             }

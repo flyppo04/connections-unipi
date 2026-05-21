@@ -120,7 +120,7 @@ public class CommandHandler {
         }
 
         return switch (userManager.register(req.getName(), req.getPsw())) {
-            case SUCCESS                 -> {persistence.markUsersDirty(); yield ok("register").toString();}
+            case SUCCESS                 -> {persistence.saveUsers(); yield ok("register").toString();}
             case USERNAME_ALREADY_EXISTS -> error("USERNAME_TAKEN",   "Username già registrato");
             case INVALID_INPUT           -> error("INVALID_INPUT",    "Parametri non validi");
         };
@@ -223,7 +223,7 @@ public class CommandHandler {
 
         return switch (userManager.updateCredentials(user.getUsername(),
                 req.getOldPsw(), newName, newPsw)) {
-            case SUCCESS          -> {persistence.markUsersDirty(); yield ok("updateCredentials").toString();}
+            case SUCCESS          -> {persistence.saveUsers(); yield ok("updateCredentials").toString();}
             case USER_NOT_FOUND     -> error("USER_NOT_FOUND",   "Utente non trovato");
             case WRONG_PASSWORD    -> error("WRONG_PASSWORD",   "Password corrente errata");
             case NEW_USERNAME_TAKEN -> error("USERNAME_TAKEN",   "Nuovo username già in uso");

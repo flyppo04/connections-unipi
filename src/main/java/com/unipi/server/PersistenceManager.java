@@ -14,8 +14,8 @@ import com.unipi.models.User;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
-import java.io.FileReader;
-import java.io.FileWriter;
+//import java.io.FileReader;
+//import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
@@ -39,7 +39,7 @@ public class PersistenceManager {
     private final Gson gson = new GsonBuilder().setPrettyPrinting().create();
     private static final String GAME_ID_FILE = "gameId.json";
 
-    private volatile boolean usersDirty = false;
+    //private volatile boolean usersDirty = false;
     private ScheduledExecutorService scheduler;
 
     public PersistenceManager(String usersFile, String gamesDir, UserManager userManager) {
@@ -74,9 +74,9 @@ public class PersistenceManager {
         System.out.println("[PERSIST] Salvataggio finale completato.");
     }
 
-    public void markUsersDirty() {
+/*     public void markUsersDirty() {
         usersDirty = true;
-    }
+    } */
 
     public void saveUsers() {
         List<User> snapshot = new ArrayList<>(userManager.getAllUsers());

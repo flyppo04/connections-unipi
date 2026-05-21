@@ -48,7 +48,7 @@ class ExtraTests {
     static class NoPersistenceManager extends PersistenceManager {
         NoPersistenceManager(UserManager um) { super("/dev/null", "/dev/null", um); }
         @Override public void saveUsers() {}
-        @Override public void markUsersDirty() {}
+        //@Override public void markUsersDirty() {}
         @Override public synchronized void saveCompletedGame(Game game) {}
         @Override public synchronized Game findCompletedGameById(int gameId) { return null; }
     }

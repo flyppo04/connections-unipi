@@ -15,20 +15,14 @@ import java.util.concurrent.atomic.AtomicInteger;
 /**
  * Gestisce il ciclo di vita delle partite: avvio, valutazione proposte,
  * fine partita per timer o per vittoria/sconfitta del giocatore.
- *
- * Thread-safe: tutti i metodi pubblici possono essere chiamati
- * da thread concorrenti (uno per ogni client connesso).
  */
 public class GameManager {
 
-    // -------------------------------------------------------------------------
-    // Interfaccia callback — pattern Observer (versione singola)
-    // -------------------------------------------------------------------------
-
     /**
+     Interfaccia callback 
      * Contratto del callback di fine partita.
-     * Il server NIO registra qui la propria logica (UDP + persistenza).
-     * GameManager non sa nulla di socket, UDP o rete.
+     * Il server registra qui la propria logica (UDP + persistenza).
+     * GameManager non sa nulla di socket, UDP o rete, ma si occuap solo di avvisarlo
      */
     @FunctionalInterface
     public interface GameEndCallback {
@@ -40,10 +34,7 @@ public class GameManager {
         void onNewGame(Game startedGame);
     }
 
-    // -------------------------------------------------------------------------
     // Enum di risultato per submitProposal
-    // -------------------------------------------------------------------------
-
     public enum ProposalResult {
         CORRECT,           // le 4 parole formano un gruppo corretto
         WRONG,             // le 4 parole non formano nessun gruppo valido
@@ -53,10 +44,7 @@ public class GameManager {
         NO_ACTIVE_GAME     // nessuna partita attiva al momento
     }
 
-    // -------------------------------------------------------------------------
     // Campi
-    // -------------------------------------------------------------------------
-
     private final PuzzleReader puzzleReader;
     private final UserManager  userManager;
     private final PersistenceManager persistenceManager;
@@ -69,26 +57,17 @@ public class GameManager {
     private volatile Game currentGame;
 
     /**
-     * cache utimi 5 game
-     * ConcurrentHashMap perché più thread possono leggerla contemporaneamente.
-     */
-    //private static final int CACHE_SIZE = 5;
-    //private final Map<Integer, Game> recentGames = new ConcurrentHashMap<>();
-
-    /**
      * Contatore thread-safe per gli ID di partita.
      * getAndIncrement() è atomico: nessuna race condition possibile.
      */
     private final AtomicInteger nextGameId;
 
-    /**
-     * Thread pool per il timer della partita
-     */
+    //Thread pool per il timer della partita
     private final ScheduledExecutorService scheduler;
 
     /**
      * Riferimento al task del timer corrente.
-     * Serve per cancellarlo pulitamente allo shutdown del server.
+     * Serve per cancellarlo in modo pulito allo shutdown del server.
      */
     private ScheduledFuture<?> currentGameTimer;
 
@@ -99,30 +78,28 @@ public class GameManager {
     private GameEndCallback onGameEnd;
     private NewGameCallback onNewGame;
 
-    // -------------------------------------------------------------------------
     // Costruttore
-    // -------------------------------------------------------------------------
-
     public GameManager(PuzzleReader puzzleReader,
                        UserManager userManager,
                        long gameDurationSeconds,
                        PersistenceManager persistenceManager) {
+
         this.puzzleReader        = puzzleReader;
         this.userManager         = userManager;
         this.gameDurationSeconds = gameDurationSeconds;
-        this.nextGameId          = new AtomicInteger(persistenceManager.loadGameId());
+        //vado a prendere il gameid che ho salvato nel file gameId per continuità
+        this.nextGameId          = new AtomicInteger(persistenceManager.loadGameId()); 
+        //genero il pool di un solo thread che faccia da timer 
         this.scheduler           = Executors.newScheduledThreadPool(1);
         this.persistenceManager  = persistenceManager;
         this.onGameEnd           = null;
         this.onNewGame           = null;
+
     }
 
-    // -------------------------------------------------------------------------
     // Registrazione callback (chiamata dal ServerMain all'avvio)
-    // -------------------------------------------------------------------------
-
     /**
-     * Registra il callback da invocare quando una partita termina.
+     * Registra il callback da invocare quando una partita termina o inizia.
      * Tipicamente chiamato una sola volta da ServerMain.
      */
     public void setGameEndCallback(GameEndCallback callback) {
@@ -133,9 +110,7 @@ public class GameManager {
         this.onNewGame = callback;
     }
 
-    // -------------------------------------------------------------------------
     // Avvio partita
-    // -------------------------------------------------------------------------
 
     /**
      * Avvia una nuova partita con il prossimo puzzle disponibile.
@@ -143,13 +118,15 @@ public class GameManager {
      * synchronized: garantisce che solo un thread alla volta possa
      * cambiare currentGame ed avviare un nuovo timer.
      */
+    
     public synchronized void startNewGame() {
         // PuzzleReader gestisce internamente l'indice e il wrap-around
         PuzzleData puzzle = puzzleReader.getNextPuzzle();
         int gameId = nextGameId.getAndIncrement();
 
-        persistenceManager.saveGameId(gameId);
-
+        //aggiorno il game id che ho nel file gameId 
+        //so che è una I/O e sono dentro syncronzed ma è veloce 
+        persistenceManager.saveGameId(gameId); 
 
         // Estrai le 16 parole già mescolate dal puzzle
         List<String> words = puzzle.getAllShuffledWords();
@@ -165,24 +142,15 @@ public class GameManager {
 
         currentGame = newGame;
         // Schedula la fine partita — non bloccante, ritorna subito
-        currentGameTimer = scheduler.schedule(
-                this::endCurrentGame,
-                gameDurationSeconds,
-                TimeUnit.SECONDS
-        );
+        currentGameTimer = scheduler.schedule(this::endCurrentGame,gameDurationSeconds,TimeUnit.SECONDS);
 
-        System.out.println("[GameManager] Partita #" + gameId + " avviata. " +
-                           "Durata: " + gameDurationSeconds + "s.");
+        System.out.println("[GameManager] Partita #" + gameId + " avviata. " + "Durata: " + gameDurationSeconds + "s.");
     }
 
-    // -------------------------------------------------------------------------
     // Valutazione proposta
-    // -------------------------------------------------------------------------
-
     /**
      * Valuta una proposta di raggruppamento inviata da un giocatore.
-     * Aggiorna PlayerGameState e, se la partita è finita per quel giocatore,
-     * aggiorna anche le statistiche in User.
+     * Aggiorna PlayerGameState 
      *
      * @param username username del giocatore
      * @param words    lista di 4 parole proposte
@@ -192,6 +160,8 @@ public class GameManager {
     public ProposalResult submitProposal(String username, List<String> words) {
         // Copia locale — evita race condition se currentGame cambia
         // mentre questo metodo è in esecuzione
+        //esmpio: se mentre elaboro poposta game finisce, currentGame cambia ma game no
+        //        non c'è rischio di salvare dati falsi su nuova partita
         Game game = currentGame;
 
         if (game == null || game.isExpired()) {
@@ -206,10 +176,10 @@ public class GameManager {
             return ProposalResult.NO_ACTIVE_GAME;
         }
         
-    
         // Lock per singolo giocatore: rende atomica la sequenza
         // check hasFinished -> valida proposta -> aggiorna stato/statistiche,
-        // evitando race con il timer di fine partita sullo stesso PlayerGameState.
+        // evitando race con il timer di fine partita sullo stesso PlayerGameState
+        // esmpio: se sta elaborando risposta alla peggio ritarda di pochissimo chiusura
         synchronized (state){
             // Il giocatore ha già finito (vinto o perso per errori)
             if (state.hasFinished()) {
@@ -231,9 +201,12 @@ public class GameManager {
                 List<String> groupWords = game.getConnections().get(matchedTheme);
                 state.addCorrectGroup(matchedTheme, groupWords);
 
+                //sezione necesaria per l'aggiunta del 4° gruppo in automatico quando ne vengono accettati 3 
                 if (state.isWinner() && state.getCorrectGroupsFound().size() == 3) {
+                    //per ogni tema con relativo set di parole 
                     for (Map.Entry<String, List<String>> entry : game.getConnections().entrySet()) {
                         String theme = entry.getKey();
+                        //se il tema non è tra quelli trovati lo inserisce 
                         if (!state.getCorrectGroupsFound().contains(theme)) {
                             state.addCorrectGroup(theme, entry.getValue());
                             break; 
@@ -241,11 +214,12 @@ public class GameManager {
                     }
                 }
     
-                // Se hasFinished() è diventato true dentro addCorrectGroup(),
+                // Se hasFinished() è diventato true  dentro addCorrectGroup() perchè ha "vinto" o ha "perso"
                 // aggiorna le statistiche dell'utente
                 if (state.hasFinished()) {
                     updateUserStatsOnFinish(username, state);
                 }
+
                 return ProposalResult.CORRECT;
     
             } else {
@@ -261,10 +235,7 @@ public class GameManager {
         }
     }
 
-    // -------------------------------------------------------------------------
     // Fine partita
-    // -------------------------------------------------------------------------
-
     /**
      * Termina la partita corrente per scadenza del timer.
      * Chiamato automaticamente dallo scheduler dopo gameDurationSeconds.
@@ -307,14 +278,12 @@ public class GameManager {
         }
     }
 
-    // -------------------------------------------------------------------------
     // Aggiornamento statistiche utente
-    // -------------------------------------------------------------------------
-
     /**
      * Aggiorna User quando il giocatore finisce la partita
      * per vittoria o per 4 errori (non per timeout).
      */
+
     private void updateUserStatsOnFinish(String username, PlayerGameState state) {
         User user = userManager.getUserByUsername(username);
         if (user == null) return;
@@ -322,14 +291,14 @@ public class GameManager {
         user.addScore(state.getScore()); 
 
         if (state.isWinner()) {
-            // puzzlesTracker[n. errori] = vinto con n. errori
-            //user.getPuzzlesTracker()[state.getMistakes()]++;
+            // memorizzo vitoria con relativo numero di errori di questa partita
             user.recordWinWithMistakes(state.getMistakes());
-            user.updateCurentStreak();   // usa il nome esatto del tuo metodo
+            //aggirono streak vittorie
+            user.updateCurentStreak();   
         } else {
-            // puzzlesTracker[4] = perso per 4 errori
-            //user.getPuzzlesTracker()[4]++;
+            // memorizzo sconfitta dovuta a 4 errori
             user.recordLossByMistakes();
+            // cancello streak di vittorie
             user.resetCurrentStreak();
         }
     }
@@ -343,16 +312,13 @@ public class GameManager {
 
         user.addScore(state.getScore());
 
-        // puzzlesTracker[5] = non finito in tempo
-        //user.getPuzzlesTracker()[5]++;
+        // memorizzo sconfitta per timeout
         user.recordTimeout();
         user.resetCurrentStreak();
     }
 
-    // -------------------------------------------------------------------------
-    // Metodi privati di validazione
-    // -------------------------------------------------------------------------
 
+    // Metodi privati di validazione
     /**
      * Controlla che la proposta sia strutturalmente valida.
      * Restituisce null se è valida, altrimenti il ProposalResult di errore.
@@ -370,7 +336,7 @@ public class GameManager {
             return ProposalResult.MALFORMED;
         }
 
-        // Recupera le 16 parole valide per questa partita (già in minuscolo o come salvate)
+        // Recupera le 16 parole valide per questa partita
         List<String> validBoardWords = game.getWords();
         
         // Verifica che OGNI parola proposta dall'utente esista sulla board
@@ -395,7 +361,7 @@ public class GameManager {
         List<String> alreadyFound = state.getWordsAlreadyFound();
         for (String word : words) {
             if (alreadyFound.contains(word.toUpperCase())) {
-                return ProposalResult.MALFORMED;
+                return ProposalResult.ALREADY_FOUND;
             }
         }
 
@@ -416,7 +382,7 @@ public class GameManager {
             proposed.add(w.toUpperCase());
         }
 
-        // game.getConnections() restituisce Map<String, List<String>> tema → parole
+        // game.getConnections() restituisce Map<String, List<String>> tema -> parole
         for (Map.Entry<String, List<String>> entry : game.getConnections().entrySet()) {
             String theme = entry.getKey();
 
@@ -435,61 +401,31 @@ public class GameManager {
         return null;
     }
 
-    // -------------------------------------------------------------------------
     // Getter pubblici
-    // -------------------------------------------------------------------------
 
-    /** Restituisce la partita attualmente in corso, o null se nessuna. */
+    //Restituisce la partita attualmente in corso
     public Game getCurrentGame() {
         return currentGame;
     }
 
-        /** Restituisce una partita passata per ID */
+    //Restituisce una partita passata per ID 
     public Game getGame(int gameId) {
-        Game current = currentGame;
-        if (current != null && current.getGameId() == gameId) {
-            return current;
-        }
 
         return persistenceManager.findCompletedGameById(gameId);
+
     }
 
-    /** True se c'è una partita attiva e non scaduta. */
+    //True se c'è una partita attiva e non scaduta
     public boolean hasActiveGame() {
         return currentGame != null && !currentGame.isExpired();
     }
-
-    /**
-     * Restituisce l'elenco delle sole partite concluse (scadute).
-     * Esclude la partita corrente ancora in corso.
-     * 
-     * Ordinate per gameId crescente.
-     * 
-     * Thread-safe: usa ConcurrentHashMap.values() che è sicuro.
-     */
-    /* public List<Game> getCompletedGames() {
-        List<Game> completed = new ArrayList<>();
-        
-        // Itera su tutte le partite nello storico
-        for (Game game : gameHistory.values()) {
-            // Una partita è "conclusa" se è scaduta
-            // (endCurrentGame() la lascia scaduta dopo averla chiusa)
-            if (game.isExpired()) {
-                completed.add(game);
-            }
-        }
-        
-        // Ordina per ID crescente (più recenti per ultime)
-        completed.sort(Comparator.comparingInt(Game::getGameId));
-        
-        return completed;
-    } */
 
     /**
      * Shutdown pulito del server.
      * Cancella il timer corrente e ferma il thread pool ordinatamente.
      * Chiamato da ServerMain quando il server si spegne.
      */
+    
     public void shutdown() {
         if (currentGameTimer != null) {
             // false = non interrompere il task se è già in esecuzione

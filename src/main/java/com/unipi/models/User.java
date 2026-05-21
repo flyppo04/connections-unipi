@@ -105,7 +105,7 @@ public class User {
             return 0.0f;
         }
 
-        int puzzleLoss = puzzlesTracker[4] + puzzlesTracker[5];
+        int puzzleLoss = puzzlesTracker[4];
 
         return ((float) puzzleLoss / totPuzzles) * 100;
         

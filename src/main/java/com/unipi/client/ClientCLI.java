@@ -165,7 +165,7 @@ public class ClientCLI {
         JsonObject res = connection.sendAndReceive(req);
         if (isOk(res)) {
             loggedInUser = username;
-            System.out.println("✓ Login effettuato come " + username);
+            System.out.println("Login effettuato come " + username);
             applyLoginState(res);
         } else {
             printError(res);
@@ -178,7 +178,7 @@ public class ClientCLI {
 
         JsonObject res = connection.sendAndReceive(req);
         if (isOk(res)) {
-            System.out.println("✓ Logout effettuato.");
+            System.out.println("Logout effettuato.");
         } else {
             printError(res);
         }

@@ -299,7 +299,7 @@ public class ServerMain {
         });
         msg.add("solution", solution);
 
-        byte[] data = msg.toString().getBytes();
+        byte[] data = msg.toString().getBytes(StandardCharsets.UTF_8);
 
         for (SocketChannel ch : userManager.getLoggedInChannels()) {
             Integer port = udpPorts.get(ch);
@@ -377,7 +377,7 @@ public class ServerMain {
      */
     private void sendTcp(SocketChannel channel, String response) {
         try {
-            ByteBuffer buf = ByteBuffer.wrap((response + "\n").getBytes());
+            ByteBuffer buf = ByteBuffer.wrap((response + "\n").getBytes(StandardCharsets.UTF_8));
             synchronized (channel) {
                 channel.write(buf);
 

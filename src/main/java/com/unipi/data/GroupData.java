@@ -6,7 +6,7 @@ public class GroupData {
     private String theme;
     private List<String> words;
 
-    //per test
+    //per test e uso manuale
     public GroupData(String theme, List<String> words) {
         this.theme = theme;
         this.words = words;
@@ -21,9 +21,9 @@ public class GroupData {
         return words;
     }
     
-    // Per il debug
+  /*   // Per il debug
     @Override
     public String toString() {
         return theme + ": " + words;
-    }
+    } */
 }

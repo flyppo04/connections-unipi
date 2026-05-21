@@ -26,7 +26,6 @@ public class PuzzleData {
 
     /**
      * Metodo di utilità: ti restituisce tutte le 16 parole mischiate.
-     * Al Game non importa il tema all'inizio, gli servono solo le 16 parole da mandare ai client.
      */
     public List<String> getAllShuffledWords() {
         List<String> allWords = new ArrayList<>();

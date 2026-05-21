@@ -14,10 +14,16 @@ public class PuzzleReader {
     private final List<PuzzleData> allPuzzles;
     private int currentIndex = 0;
 
+    //prende il filepath del file con i puzzle
     public PuzzleReader(String filePath) {
+        //creo reader con inputstreamreder che da byte trasforma in caratteri codificati 
         try (InputStreamReader reader = new InputStreamReader(new FileInputStream(filePath), StandardCharsets.UTF_8)) {
+            
             Gson gson = new Gson();
+            
             Type listType = new TypeToken<List<PuzzleData>>() {}.getType();
+            
+            //deserializzo i puzzle letti dal reader in json con fromJeson e li tipizzo iin PuzzleData 
             List<PuzzleData> loaded = gson.fromJson(reader, listType);
 
             if (loaded == null || loaded.isEmpty()) {
@@ -25,17 +31,16 @@ public class PuzzleReader {
             }
 
             this.allPuzzles = loaded;
+
             System.out.println("Caricati " + allPuzzles.size() + " puzzle.");
         } catch (IOException e) {
             throw new RuntimeException("Errore apertura file puzzle: " + filePath, e);
         }
     }
 
-    // se volessi fare che invece di ripartire da 0 ogni riavvio partisse da dove si era "fermato"
-    // precedentemente potrei passare a getNextPuzzle il gameid e usare quello per pesacre puzzle 
-    // però sto msichiando concetti che dovrebbero essere diversi  
     public synchronized PuzzleData getNextPuzzle() { 
         PuzzleData next = allPuzzles.get(currentIndex);
+        //indice in modulo per reinizare dal primo puzzle finita la lista 
         currentIndex = (currentIndex + 1) % allPuzzles.size();
         return next;
     }

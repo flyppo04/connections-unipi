@@ -68,7 +68,9 @@ public class PlayerGameState {
     }
     
     public synchronized  void addCorrectGroup(String groupName, List<String> wordsOfGroup) {
-        if (hasFinished) return;
+
+        //gestisco l'aggiunta del 4 gruppo con un booleano che mi dice se il corretGrup da o meno i 6 pnuti
+        boolean givesPoints = (this.correctGroupsFound.size() < 3);
 
         if (this.correctGroupsFound.contains(groupName)) {
             return;
@@ -76,7 +78,10 @@ public class PlayerGameState {
 
         this.correctGroupsFound.add(groupName);
         this.wordsAlreadyFound.addAll(wordsOfGroup);
-        this.score += 6;
+        
+        if (givesPoints) {
+            this.score += 6;
+        }
 
         if (this.correctGroupsFound.size() >= 3) {
             this.hasFinished = true;

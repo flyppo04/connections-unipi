@@ -230,6 +230,16 @@ public class GameManager {
                 // come si aspetta la firma del tuo PlayerGameState
                 List<String> groupWords = game.getConnections().get(matchedTheme);
                 state.addCorrectGroup(matchedTheme, groupWords);
+
+                if (state.isWinner() && state.getCorrectGroupsFound().size() == 3) {
+                    for (Map.Entry<String, List<String>> entry : game.getConnections().entrySet()) {
+                        String theme = entry.getKey();
+                        if (!state.getCorrectGroupsFound().contains(theme)) {
+                            state.addCorrectGroup(theme, entry.getValue());
+                            break; 
+                        }
+                    }
+                }
     
                 // Se hasFinished() è diventato true dentro addCorrectGroup(),
                 // aggiorna le statistiche dell'utente

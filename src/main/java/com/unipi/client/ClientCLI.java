@@ -200,7 +200,7 @@ public class ClientCLI {
 
         JsonObject res = connection.sendAndReceive(req);
         if (isOk(res)) {
-            System.out.println("✓ Credenziali aggiornate.");
+            System.out.println("Credenziali aggiornate.");
             if (!newName.isEmpty()) loggedInUser = newName; // aggiorna stato locale
         } else {
             printError(res);
@@ -299,7 +299,7 @@ public class ClientCLI {
             if (res.has("solution")) {
                 System.out.println("  Soluzione:");
                 res.get("solution").getAsJsonObject().entrySet().forEach(e -> {
-                    System.out.print("    [" + e.getKey() + "] → ");
+                    System.out.print("    [" + e.getKey() + "] -> ");
                     e.getValue().getAsJsonArray().forEach(w -> System.out.print(w.getAsString() + " "));
                     System.out.println();
                 });
@@ -361,7 +361,7 @@ public class ClientCLI {
         if (!isOk(res)) { printError(res); return; }
 
         if (res.has("rank")) {
-            System.out.printf("  %s → posizione #%d | Punteggio: %d%n",
+            System.out.printf("  %s -> posizione #%d | Punteggio: %d%n",
                     res.get("playerName").getAsString(),
                     res.get("rank").getAsInt(),
                     getInt(res, "totalScore", 0));
@@ -415,7 +415,7 @@ public class ClientCLI {
                                "4 err (perso)", "Timeout"};
             for (int i = 0; i < hist.size() && i < labels.length; i++) {
                 int count = hist.get(i).getAsInt();
-                String bar = "█".repeat(Math.min(count, 30)) + (count > 30 ? "+" : "");
+                String bar = "#".repeat(Math.min(count, 30)) + (count > 30 ? "+" : "");
                 System.out.printf("  %-18s | %s %d%n", labels[i], bar, count);
             }
         }

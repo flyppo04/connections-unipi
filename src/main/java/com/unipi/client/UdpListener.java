@@ -9,16 +9,13 @@ import java.net.DatagramSocket;
 import java.net.SocketException;
 import java.nio.charset.StandardCharsets;
 
-/**
- * Thread daemon che ascolta le notifiche UDP asincrone dal server.
- *
- * Gestisce due tipi di messaggi (coerenti con ServerMain):
- *   - "GAME_END"  → fine partita: soluzione, vincitori, statistiche
- *   - "newGame"   → nuova partita iniziata: nuove parole, gameId, tempo
- *
- * Stampa le notifiche a schermo in modo non invasivo.
- * La porta UDP viene comunicata al server durante il login.
- */
+/* Thread daemon che ascolta le notifiche UDP asincrone dal server
+Gestisce due tipi di messaggi (coerenti con ServerMain):
+  - "GAME_END"  → fine partita: soluzione, vincitori, statistiche
+  - "newGame"   → nuova partita iniziata: nuove parole, gameId, tempo
+Stampa le notifiche a schermo in modo non invasivo
+La porta UDP viene comunicata al server durante il login */
+
 public class UdpListener implements Runnable {
 
     private static final int BUFFER_SIZE = 8192;

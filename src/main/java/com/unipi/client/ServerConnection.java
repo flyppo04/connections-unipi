@@ -12,16 +12,13 @@ import java.nio.channels.SocketChannel;
 import java.nio.charset.StandardCharsets;
 import java.util.Iterator;
 
-/**
- * Gestisce la connessione TCP NIO non bloccante verso il server.
- *
- * Usa SocketChannel + Selector in modalità non bloccante.
- * Il metodo sendAndReceive() è sincrono dal punto di vista del chiamante
- * (CLI), ma internamente usa il Selector per attendere la risposta
- * senza bloccare il thread in modo "busy-wait".
- *
- * Il delimitatore di messaggio è \n, coerente con ServerMain.
- */
+/* Gestisce la connessione TCP NIO non bloccante verso il server
+Usa SocketChannel + Selector in modalità non bloccante
+Il metodo sendAndReceive() è sincrono dal punto di vista del chiamante
+(CLI), ma internamente usa il Selector per attendere la risposta
+senza bloccare il thread in modo "busy-wait"
+Il delimitatore di messaggio è \n, coerente con ServerMain */
+
 public class ServerConnection {
 
     private static final int BUFFER_SIZE    = 4096;
@@ -62,14 +59,10 @@ public class ServerConnection {
         System.out.println("[CLIENT] Connesso a " + host + ":" + port);
     }
 
-    /**
-     * Invia un messaggio JSON al server e attende la risposta.
-     * Thread-safe: synchronized perché la CLI è mono-thread,
-     * ma protegge in ogni caso da accessi concorrenti futuri.
-     *
-     * @param request JsonObject da inviare
-     * @return JsonObject risposta del server, o null in caso di errore
-     */
+    /* Invia un messaggio JSON al server e attende la risposta     
+    @param request JsonObject da inviare
+    @return JsonObject risposta del server, o null in caso di errore */
+
     public synchronized JsonObject sendAndReceive(JsonObject request) throws IOException {
         // Invia il messaggio con delimitatore \n
         String msg = request.toString() + "\n";
@@ -80,16 +73,16 @@ public class ServerConnection {
             channel.write(writeBuffer);
         }
 
-        System.out.println("[OUT] " + request);
+        //si può togliere commento per verificare cosa viene mandato 
+        //System.out.println("[OUT] " + request);
 
         // Attendi risposta tramite Selector (non bloccante)
         return readResponse();
     }
 
-    /**
-     * Legge dal canale finché non trova un messaggio completo (delimitato da \n).
-     * Usa il Selector per attendere dati disponibili senza bloccare.
-     */
+    /* Legge dal canale finché non trova un messaggio completo (delimitato da \n)
+    Usa il Selector per attendere dati disponibili senza bloccare */
+
     private JsonObject readResponse() throws IOException {
         long deadline = System.currentTimeMillis() + TIMEOUT_MS;
 
@@ -132,7 +125,8 @@ public class ServerConnection {
         // Ultimo tentativo dopo l'ultimo ciclo di lettura
         String complete = extractCompleteMessage(partialMessage);
         if (complete != null) {
-            System.out.println("[IN] " + complete);
+            //si può togliere commento per verificare cosa viene ricevuto 
+            //System.out.println("[IN] " + complete);
             return JsonParser.parseString(complete).getAsJsonObject();
         }
 

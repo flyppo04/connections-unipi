@@ -5,19 +5,16 @@ import com.google.gson.*;
 import java.io.IOException;
 import java.util.*;
 
-/**
- * Interfaccia a linea di comando del client Connections.
- *
- * Gestisce tutto il flusso interattivo: menu, input utente,
- * formattazione risposte. Usa ServerConnection per il TCP
- * e UdpListener per le notifiche asincrone.
- *
- * Stato locale mantenuto:
- *   - loggedInUser: username corrente (null se non loggato)
- *   - currentGameId: id partita in corso (-1 = nessuna)
- *   - currentWords: parole rimanenti da raggruppare
- *   - udpPort: porta UDP registrata al login
- */
+/* Interfaccia a linea di comando del client Connections
+Gestisce tutto il flusso interattivo: menu, input utente,
+formattazione risposte. Usa ServerConnection per il TCP
+e UdpListener per le notifiche asincrone
+Stato locale mantenuto:
+  - loggedInUser: username corrente (null se non loggato)
+  - currentGameId: id partita in corso (-1 = nessuna)
+  - currentWords: parole rimanenti da raggruppare
+  - udpPort: porta UDP registrata al login  */
+
 public class ClientCLI {
 
     private final ServerConnection connection;
@@ -41,9 +38,7 @@ public class ClientCLI {
         udpListener.setNewGameHandler(this::applyNewGameState);
     }
 
-    // =========================================================================
     // LOOP PRINCIPALE
-    // =========================================================================
 
     public void run() {
         printBanner();
@@ -67,9 +62,7 @@ public class ClientCLI {
         System.out.println("Arrivederci!");
     }
 
-    // =========================================================================
     // MENU NON LOGGATO
-    // =========================================================================
 
     private boolean menuNotLogged() throws IOException {
         System.out.println("\n--- MENU PRINCIPALE ---");
@@ -89,9 +82,7 @@ public class ClientCLI {
         };
     }
 
-    // =========================================================================
     // MENU LOGGATO
-    // =========================================================================
 
     private boolean menuLogged() throws IOException {
         System.out.println("\n--- MENU GIOCO [" + loggedInUser + "] ---");
@@ -127,9 +118,7 @@ public class ClientCLI {
         };
     }
 
-    // =========================================================================
     // HANDLER — gestione utente
-    // =========================================================================
 
     private void doRegister() throws IOException {
         System.out.print("Username: ");
@@ -144,7 +133,7 @@ public class ClientCLI {
 
         JsonObject res = connection.sendAndReceive(req);
         if (isOk(res)) {
-            System.out.println("✓ Registrazione completata. Ora puoi fare il login.");
+            System.out.println("Registrazione completata. Ora puoi fare il login.");
         } else {
             printError(res);
         }
@@ -218,9 +207,8 @@ public class ClientCLI {
         }
     }
 
-    // =========================================================================
+
     // HANDLER — partita
-    // =========================================================================
 
     private void doSubmitProposal() throws IOException {
         if (currentWords.isEmpty()) {
@@ -251,21 +239,21 @@ public class ClientCLI {
         if (isOk(res)) {
             boolean correct = res.has("correct") && res.get("correct").getAsBoolean();
             if (correct) {
-                System.out.println("✓ Proposta CORRETTA!");
+                System.out.println(" Proposta CORRETTA! per visualizzare i temi indovinati visualizza stato partita (2).");
                 // Rimuovi le parole trovate dalla lista locale
                 for (JsonElement w : words) {
                     currentWords.remove(w.getAsString());
                 }
             } else {
                 currentErrors = getInt(res, "mistakes", currentErrors);
-                System.out.println("✗ Proposta ERRATA. Errori: " + currentErrors);
+                System.out.println(" Proposta ERRATA. Errori: " + currentErrors);
             }
             currentScore = getInt(res, "score", currentScore);
             System.out.printf("  Punteggio corrente: %d%n", currentScore);
 
             if (res.has("hasFinished") && res.get("hasFinished").getAsBoolean()) {
                 boolean winner = res.has("isWinner") && res.get("isWinner").getAsBoolean();
-                System.out.println(winner ? "🏆 Hai VINTO la partita!" : "💀 Hai PERSO la partita (4 errori).");
+                System.out.println(winner ? " Hai VINTO la partita!" : " Hai PERSO la partita (4 errori).");
                 System.out.println("Attendi la fine della partita globale per la prossima.");
             }
         } else {
@@ -291,7 +279,7 @@ public class ClientCLI {
             System.out.println("  Punteggio       : " + getInt(res, "currentScore", 0));
             if (res.has("correctGroupsFound")) {
                 System.out.print("  Gruppi trovati  : ");
-                res.get("correctGroupsFound").getAsJsonArray().forEach(g -> System.out.print(g.getAsString() + " "));
+                res.get("correctGroupsFound").getAsJsonArray().forEach(g -> System.out.print(g.getAsString() + " | "));
                 System.out.println();
             }
             if (res.has("wordsRemaining")) {
@@ -358,9 +346,7 @@ public class ClientCLI {
         }
     }
 
-    // =========================================================================
     // HANDLER — classifica e statistiche
-    // =========================================================================
 
     private void doLeaderboard(String playerName, int topK) throws IOException {
         JsonObject req = new JsonObject();
@@ -435,14 +421,11 @@ public class ClientCLI {
         }
     }
 
-    // =========================================================================
     // STATO LOCALE — applicazione risposte server
-    // =========================================================================
 
-    /**
-     * Applica lo stato della partita ricevuto dal server al login.
-     * Coerente con handleLogin() in CommandHandler.
-     */
+    /* Applica lo stato della partita ricevuto dal server al login
+    Coerente con handleLogin() in CommandHandler */
+
     private void applyLoginState(JsonObject res) {
         if (res.has("gameActive") && !res.get("gameActive").getAsBoolean()) {
             System.out.println("  Nessuna partita attiva al momento.");
@@ -473,10 +456,9 @@ public class ClientCLI {
         }
     }
 
-    /**
-     * Callback invocato dal UdpListener quando arriva una notifica "newGame".
-     * Aggiorna lo stato locale per la nuova partita.
-     */
+    /*    Callback invocato dal UdpListener quando arriva una notifica "newGame"
+    Aggiorna lo stato locale per la nuova partita */
+
     private void applyNewGameState(JsonObject msg) {
         currentGameId = msg.has("gameId") ? msg.get("gameId").getAsInt() : -1;
         currentErrors = 0;
@@ -487,10 +469,8 @@ public class ClientCLI {
         }
     }
 
-    // =========================================================================
     // UTILITY
-    // =========================================================================
-
+    
     private boolean isOk(JsonObject res) {
         return res != null && res.has("status") && "ok".equals(res.get("status").getAsString());
     }

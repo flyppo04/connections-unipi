@@ -16,20 +16,11 @@ public class ClientMain {
         String host    =                  config.getProperty("server.host",       "localhost");
         int    tcpPort = Integer.parseInt(config.getProperty("server.tcp.port", "5000"));
         int    udpPort = Integer.parseInt(config.getProperty("client.udp.port", "6000"));
-
-
-
         
-
-        //test!!!!!!
+        //per far avviare più client senza avere diversi client.config
         if (args.length >= 1 && args[0] != null && !args[0].isBlank()) {
             udpPort = Integer.parseInt(args[0]);
         }
-
-
-
-
-
 
         try {
             ServerConnection connection = new ServerConnection(host, tcpPort);

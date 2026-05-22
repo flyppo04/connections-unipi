@@ -21,9 +21,4 @@ public class GroupData {
         return words;
     }
     
-  /*   // Per il debug
-    @Override
-    public String toString() {
-        return theme + ": " + words;
-    } */
 }

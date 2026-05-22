@@ -7,9 +7,8 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.concurrent.ConcurrentHashMap;
 
-/*
-Rappresenta una singola istanza di partita.
- */
+
+//Rappresenta una singola istanza di partita
 public class Game {
 
     // Campi 'final': i riferimenti non possono essere modificati dopo la creazione.

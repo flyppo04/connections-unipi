@@ -103,10 +103,9 @@ public class UserManager {
     }
 
     // Operazioni sugli utenti
-    /**
-     * Registra un nuovo utente.
-     * La password viene lasciata in chiaro essendo il progetto didattico, andrebbe almeno hashata nella realtà
-     */
+    /*Registra un nuovo utente.
+    La password viene lasciata in chiaro essendo il progetto didattico, andrebbe almeno hashata nella realtà */
+
     public RegisterResult register(String username, String password) {
         // Validazione input — fail fast
         if (username == null || username.isBlank() || password == null || password.isBlank()) {
@@ -152,10 +151,8 @@ public class UserManager {
         }
     }
 
-    /**
-     * Effettua il logout identificando l'utente dal suo canale NIO.
-     * Chiamato anche quando un canale si disconnette inaspettatamente.
-     */
+    /* Effettua il logout identificando l'utente dal suo canale NIO
+    Chiamato anche quando un canale si disconnette inaspettatamente */
     public LogoutResult logout(SocketChannel channel) {
         synchronized (userStateLock) {
 
@@ -169,10 +166,9 @@ public class UserManager {
         }
     }
 
-    /**
-     * Aggiorna username e/o password di un utente.
-     * Richiede la password attuale come conferma.
-     */
+    
+    //Aggiorna username e/o password di un utente, richiede la password attuale come conferma.
+    
     public UpdateResult updateCredentials(String oldUsername, String oldPassword,String newUsername, String newPassword) {
         if ((newUsername == null || newUsername.isBlank()) &&
             (newPassword == null || newPassword.isBlank())) {
@@ -228,10 +224,8 @@ public class UserManager {
         return loggedInUsers.containsKey(username);
     }
 
-    /*
-    Restituisce la classifica completa ordinata per punteggio totale decrescente.
-    Usa Stream API per brevità e leggibilità.
-    */
+    /* Restituisce la classifica completa ordinata per punteggio totale decrescente
+    Usa Stream API per brevità e leggibilità */
 
     public List<User> getLeaderboard() {
         return registeredUsers.values() //prendi gli utenti
@@ -243,19 +237,18 @@ public class UserManager {
                 .collect(Collectors.toList()); //trasforma il risultato in una lista
     }
 
-    /*
-    Restituisce i top K utenti della classifica.
-    */
+
+    //Restituisce i top K utenti della classifica
+
     public List<User> getTopK(int k) {
         return getLeaderboard().stream()
                 .limit(k)
                 .collect(Collectors.toList());
     }
 
-    /*
-    Restituisce la posizione in classifica di un utente (1-based).
-    Restituisce -1 se l'utente non esiste.
-    */
+    /* Restituisce la posizione in classifica di un utente (1-based)
+    Restituisce -1 se l'utente non esiste*/
+    
     public int getRank(String username) {
         List<User> leaderboard = getLeaderboard();
         for (int i = 0; i < leaderboard.size(); i++) {

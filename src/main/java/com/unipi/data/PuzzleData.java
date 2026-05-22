@@ -24,9 +24,7 @@ public class PuzzleData {
         return groups;
     }
 
-    /**
-     * Metodo di utilità: ti restituisce tutte le 16 parole mischiate.
-     */
+    //Metodo di utilità: ti restituisce tutte le 16 parole mischiate.
     public List<String> getAllShuffledWords() {
         List<String> allWords = new ArrayList<>();
         if (groups != null) {

@@ -12,18 +12,14 @@ import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
-/**
- * Gestisce il ciclo di vita delle partite: avvio, valutazione proposte,
- * fine partita per timer o per vittoria/sconfitta del giocatore.
- */
+/* Gestisce il ciclo di vita delle partite: avvio, valutazione proposte,
+fine partita per timer o per vittoria/sconfitta del giocatore */
 public class GameManager {
 
-    /**
-     Interfaccia callback 
-     * Contratto del callback di fine partita.
-     * Il server registra qui la propria logica (UDP + persistenza).
-     * GameManager non sa nulla di socket, UDP o rete, ma si occuap solo di avvisarlo
-     */
+    /* Interfaccia callback 
+    Contratto del callback di fine partita.
+    Il server registra qui la propria logica (UDP + persistenza).
+    GameManager non sa nulla di socket, UDP o rete, ma si occuap solo di avvisarlo */
     @FunctionalInterface
     public interface GameEndCallback {
         void onGameEnd(Game endedGame);
@@ -50,31 +46,22 @@ public class GameManager {
     private final PersistenceManager persistenceManager;
     private final long         gameDurationSeconds;
 
-    /**
-     * volatile: tutti i thread vedono sempre il riferimento aggiornato
-     * senza caching locale nella CPU.
-     */
+    // volatile: tutti i thread vedono sempre il riferimento aggiornatosenza caching locale nella CPU
     private volatile Game currentGame;
 
-    /**
-     * Contatore thread-safe per gli ID di partita.
-     * getAndIncrement() è atomico: nessuna race condition possibile.
-     */
+    /* Contatore thread-safe per gli ID di partita.
+    getAndIncrement() è atomico: nessuna race condition possibile */
     private final AtomicInteger nextGameId;
 
     //Thread pool per il timer della partita
     private final ScheduledExecutorService scheduler;
 
-    /**
-     * Riferimento al task del timer corrente.
-     * Serve per cancellarlo in modo pulito allo shutdown del server.
-     */
+    /* Riferimento al task del timer corrente.
+    Serve per cancellarlo in modo pulito allo shutdown del server */
     private ScheduledFuture<?> currentGameTimer;
 
-    /**
-     * Callback singolo registrato dal ServerMain.
-     * null finché il server non lo registra con setGameEndCallback().
-     */
+    /* Callback singolo registrato dal ServerMain.
+    null finché il server non lo registra con setGameEndCallback() */
     private GameEndCallback onGameEnd;
     private NewGameCallback onNewGame;
 
@@ -98,10 +85,9 @@ public class GameManager {
     }
 
     // Registrazione callback (chiamata dal ServerMain all'avvio)
-    /**
-     * Registra il callback da invocare quando una partita termina o inizia.
-     * Tipicamente chiamato una sola volta da ServerMain.
-     */
+    /* Registra il callback da invocare quando una partita termina o inizia
+    Tipicamente chiamato una sola volta da ServerMain */
+
     public void setGameEndCallback(GameEndCallback callback) {
         this.onGameEnd = callback;
     }
@@ -112,12 +98,9 @@ public class GameManager {
 
     // Avvio partita
 
-    /**
-     * Avvia una nuova partita con il prossimo puzzle disponibile.
-     *
-     * synchronized: garantisce che solo un thread alla volta possa
-     * cambiare currentGame ed avviare un nuovo timer.
-     */
+    /* Avvia una nuova partita con il prossimo puzzle disponibile
+    synchronized: garantisce che solo un thread alla volta possa
+    cambiare currentGame ed avviare un nuovo timer */
     
     public synchronized void startNewGame() {
         // PuzzleReader gestisce internamente l'indice e il wrap-around
@@ -148,14 +131,11 @@ public class GameManager {
     }
 
     // Valutazione proposta
-    /**
-     * Valuta una proposta di raggruppamento inviata da un giocatore.
-     * Aggiorna PlayerGameState 
-     *
-     * @param username username del giocatore
-     * @param words    lista di 4 parole proposte
-     * @return ProposalResult che descrive l'esito
-     */
+    /* Valuta una proposta di raggruppamento inviata da un giocatore
+    Aggiorna PlayerGameState 
+    @param username username del giocatore
+    @param words    lista di 4 parole proposte
+    @return ProposalResult che descrive l'esito */
 
     public ProposalResult submitProposal(String username, List<String> words) {
         // Copia locale — evita race condition se currentGame cambia
@@ -236,12 +216,9 @@ public class GameManager {
     }
 
     // Fine partita
-    /**
-     * Termina la partita corrente per scadenza del timer.
-     * Chiamato automaticamente dallo scheduler dopo gameDurationSeconds.
-     *
-     * synchronized: non deve sovrapporsi con startNewGame().
-     */
+    /* Termina la partita corrente per scadenza del timer
+    Chiamato automaticamente dallo scheduler dopo gameDurationSeconds
+    synchronized: non deve sovrapporsi con startNewGame() */
     private synchronized void endCurrentGame() {
 
         Game game = currentGame;
@@ -279,10 +256,7 @@ public class GameManager {
     }
 
     // Aggiornamento statistiche utente
-    /**
-     * Aggiorna User quando il giocatore finisce la partita
-     * per vittoria o per 4 errori (non per timeout).
-     */
+    // Aggiorna User quando il giocatore finisce la partita per vittoria o per 4 errori (non per timeout)
 
     private void updateUserStatsOnFinish(String username, PlayerGameState state) {
         User user = userManager.getUserByUsername(username);
@@ -303,9 +277,7 @@ public class GameManager {
         }
     }
 
-    /**
-     * Aggiorna User per i giocatori che non hanno finito quando scade il tempo.
-     */
+    // Aggiorna User per i giocatori che non hanno finito quando scade il tempo 
     private void updateUserStatsOnTimeout(String username, PlayerGameState state) {
         User user = userManager.getUserByUsername(username);
         if (user == null) return;
@@ -319,11 +291,9 @@ public class GameManager {
 
 
     // Metodi privati di validazione
-    /**
-     * Controlla che la proposta sia strutturalmente valida.
-     * Restituisce null se è valida, altrimenti il ProposalResult di errore.
-     * Nota: le proposte malformate NON incrementano gli errori né il punteggio.
-     */
+    /* Controlla che la proposta sia strutturalmente valida
+    Restituisce null se è valida, altrimenti il ProposalResult di errore
+    Nota: le proposte malformate NON incrementano gli errori né il punteggio     */
     private ProposalResult validateProposal(List<String> words, PlayerGameState state, Game game) {
         // Numero di parole errato
         if (words == null || words.size() != 4) {
@@ -368,13 +338,10 @@ public class GameManager {
         return null; // proposta strutturalmente valida
     }
 
-    /**
-     * Cerca tra i gruppi della partita quale corrisponde esattamente
-     * alle parole proposte (confronto non ordinato, case-insensitive).
-     * Considera solo i gruppi NON ancora trovati dal giocatore.
-     *
-     * Restituisce il tema (String) del gruppo trovato, o null se nessuno corrisponde.
-     */
+    /* Cerca tra i gruppi della partita quale corrisponde esattamente
+    alle parole proposte (confronto non ordinato, case-insensitive)
+    Considera solo i gruppi NON ancora trovati dal giocatore
+    Restituisce il tema (String) del gruppo trovato, o null se nessuno corrisponde */
     private String findMatchingGroup(List<String> words, Game game, PlayerGameState state) {
         // Normalizza in maiuscolo per confronto case-insensitive
         Set<String> proposed = new HashSet<>();
@@ -421,9 +388,9 @@ public class GameManager {
     }
 
     /**
-     * Shutdown pulito del server.
-     * Cancella il timer corrente e ferma il thread pool ordinatamente.
-     * Chiamato da ServerMain quando il server si spegne.
+    Shutdown pulito del server.
+    Cancella il timer corrente e ferma il thread pool ordinatamente.
+    Chiamato da ServerMain quando il server si spegne.
      */
     
     public void shutdown() {

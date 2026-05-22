@@ -32,7 +32,7 @@ public class PuzzleReader {
 
             this.allPuzzles = loaded;
 
-            System.out.println("Caricati " + allPuzzles.size() + " puzzle.");
+            System.out.println("[PuzzleReader] Caricati " + allPuzzles.size() + " puzzle.");
         } catch (IOException e) {
             throw new RuntimeException("Errore apertura file puzzle: " + filePath, e);
         }

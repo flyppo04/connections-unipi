@@ -90,7 +90,8 @@ public class ServerConnection {
             // Controlla prima se c'è già un messaggio completo nel buffer parziale
             String complete = extractCompleteMessage(partialMessage);
             if (complete != null) {
-                System.out.println("[IN] " + complete);
+                //si può togliere commento per verificare cosa viene ricevuto 
+                //System.out.println("[IN] " + complete);
                 return JsonParser.parseString(complete).getAsJsonObject();
             }
 

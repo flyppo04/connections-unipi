@@ -14,8 +14,6 @@ import com.unipi.models.User;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
-//import java.io.FileReader;
-//import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
@@ -27,9 +25,12 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-//import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
-//import java.util.concurrent.TimeUnit;
+
+
+/* Gestisce la persistenza su disco: utenti, partite completate e gameId
+Le partite vengono distribuite in file da 100 elementi ciascuno (es. games_1_100.json)
+La deserializzazione è manuale per gestire correttamente i tipi generici di Gson */
 
 public class PersistenceManager {
 
@@ -37,10 +38,8 @@ public class PersistenceManager {
     private final String gamesDir;
     private final UserManager userManager;
     private final Gson gson = new GsonBuilder().setPrettyPrinting().create();
-    private static final String GAME_ID_FILE = "gameId.json";
-
-    //private volatile boolean usersDirty = false;
-    private ScheduledExecutorService scheduler;
+    private static final String GAME_ID_FILE = "gameId.json"; // file con l'ultimo gameId usato
+    private ScheduledExecutorService scheduler; // usato da chi estende questa classe per salvataggi periodici
 
     public PersistenceManager(String usersFile, String gamesDir, UserManager userManager) {
         this.usersFile = usersFile;
@@ -49,23 +48,7 @@ public class PersistenceManager {
         new File(gamesDir).mkdirs();
     }
 
-    /* public void startPeriodicSave(int intervalMinutes) {
-        scheduler = Executors.newSingleThreadScheduledExecutor(r -> {
-            Thread t = new Thread(r, "persistence-scheduler");
-            t.setDaemon(true);
-            return t;
-        });
-
-        scheduler.scheduleAtFixedRate(() -> {
-            if (usersDirty) {
-                saveUsers();
-                usersDirty = false;
-            }
-        }, intervalMinutes, intervalMinutes, TimeUnit.MINUTES);
-
-        System.out.println("[PERSIST] Salvataggio periodico utenti ogni " + intervalMinutes + " minuti avviato.");
-    } */
-
+    // Arresta lo scheduler (se attivo) e forza un salvataggio finale degli utenti
     public void shutdown() {
         if (scheduler != null) {
             scheduler.shutdown();
@@ -74,21 +57,20 @@ public class PersistenceManager {
         System.out.println("[PERSIST] Salvataggio finale completato.");
     }
 
-/*     public void markUsersDirty() {
-        usersDirty = true;
-    } */
-
+    // Serializza tutti gli utenti e li scrive su disco
     public void saveUsers() {
         List<User> snapshot = new ArrayList<>(userManager.getAllUsers());
         writeJson(usersFile, snapshot);
         System.out.println("[PERSIST] Salvati " + snapshot.size() + " utenti.");
     }
 
+    // Carica la lista degli utenti dal file; restituisce lista vuota se il file non esiste
     public List<User> loadUsers() {
         List<User> users = readJson(usersFile, new TypeToken<List<User>>() {}.getType());
         return users != null ? users : new ArrayList<>();
     }
 
+    // Aggiunge o aggiorna la partita nell'apposito file di bucket (sincronizzato)
     public synchronized void saveCompletedGame(Game game) {
         String file = getGamesFileForGameId(game.getGameId());
         List<Game> games = loadCompletedGames(file);
@@ -101,6 +83,7 @@ public class PersistenceManager {
         System.out.println("[PERSIST] Salvata partita #" + game.getGameId() + " su " + file);
     }
 
+    // Cerca una partita completata per id nel file di bucket corrispondente (sincronizzato)
     public synchronized Game findCompletedGameById(int gameId) {
         String file = getGamesFileForGameId(gameId);
         List<Game> games = loadCompletedGames(file);
@@ -113,12 +96,14 @@ public class PersistenceManager {
         return null;
     }
 
+    // Scrive il gameId corrente su file, così il server può riprenderlo al riavvio
     public void saveGameId(int gameId) {
         JsonObject obj = new JsonObject();
         obj.addProperty("GameId", gameId);
         writeJson(GAME_ID_FILE, obj);
     }
 
+    // Legge il gameId salvato; restituisce 1 al primo avvio o in caso di errore
     public int loadGameId() {
         File f = new File(GAME_ID_FILE);
         if (!f.exists()) return 1; // primo avvio
@@ -131,6 +116,7 @@ public class PersistenceManager {
         }
     }
 
+    // Carica le partite dal file indicato; deserializza manualmente per via dei tipi generici
     private List<Game> loadCompletedGames(String filePath) {
         File f = new File(filePath);
         if (!f.exists()) return new ArrayList<>();
@@ -152,6 +138,7 @@ public class PersistenceManager {
         }
     }
 
+    // Ricostruisce un oggetto Game da un JsonObject storico
     private Game deserializeHistoricalGame(JsonObject obj) {
         int gameId = obj.get("gameId").getAsInt();
 
@@ -168,6 +155,8 @@ public class PersistenceManager {
         return new Game(gameId, words, connections, playerStates);
     }
 
+    // Ricostruisce la mappa username → PlayerGameState da un JsonObject
+    // Usa getStringOrDefault/getIntOrDefault per tollerare campi mancanti
     private Map<String, PlayerGameState> deserializePlayerStates(JsonObject playerStatesObj) {
         Map<String, PlayerGameState> playerStates = new HashMap<>();
         if (playerStatesObj == null) return playerStates;
@@ -205,27 +194,32 @@ public class PersistenceManager {
         return playerStates;
     }
 
+    // Calcola il file di bucket per un dato gameId (gruppi da 100: 1-100, 101-200, ...)
     private String getStringOrDefault(JsonObject obj, String key, String defaultValue) {
         JsonElement el = obj.get(key);
         return (el != null && !el.isJsonNull()) ? el.getAsString() : defaultValue;
     }
 
+    // Scrive l'oggetto serializzato nel file indicato (UTF-8, pretty print)
     private int getIntOrDefault(JsonObject obj, String key, int defaultValue) {
         JsonElement el = obj.get(key);
         return (el != null && !el.isJsonNull()) ? el.getAsInt() : defaultValue;
     }
 
+    // Legge e deserializza un oggetto dal file indicato; null se il file non esiste
     private boolean getBooleanOrDefault(JsonObject obj, String key, boolean defaultValue) {
         JsonElement el = obj.get(key);
         return (el != null && !el.isJsonNull()) ? el.getAsBoolean() : defaultValue;
     }
 
+    // Calcola il file di bucket per un dato gameId (gruppi da 100: 1-100, 101-200, ...)
     private String getGamesFileForGameId(int gameId) {
         int start = ((gameId - 1) / 100) * 100 + 1;
         int end = start + 99;
         return gamesDir + File.separator + "games_" + start + "_" + end + ".json";
     }
 
+    // Scrive l'oggetto serializzato nel file indicato (UTF-8, pretty print)
     private void writeJson(String filePath, Object data) {
         try (Writer w = new OutputStreamWriter(new FileOutputStream(filePath), StandardCharsets.UTF_8)) {
             gson.toJson(data, w);
@@ -234,6 +228,7 @@ public class PersistenceManager {
         }
     }
 
+    // Legge e deserializza un oggetto dal file indicato; null se il file non esiste
     private <T> T readJson(String filePath, Type type) {
         File f = new File(filePath);
         if (!f.exists()) return null;

@@ -20,25 +20,22 @@ import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.concurrent.*;
 
-/**
- * Punto di ingresso del server.
- *
- * Responsabilità di questa classe (SOLO infrastruttura):
- *   - leggere la configurazione da file (PDF §4)
- *   - inizializzare i componenti
- *   - gestire il loop NIO Selector su un thread dedicato
- *   - passare i messaggi al CommandHandler tramite thread pool (PDF §3)
- *   - inviare notifiche UDP asincrone di fine partita (PDF §3)
- *   - persistere gli utenti su JSON
- *   - shutdown ordinato
- *
- * Il parsing e la logica applicativa sono in CommandHandler.
- */
+/* Punto di ingresso del server
+
+Responsabilità di questa classe (SOLO infrastruttura):
+  - leggere la configurazione da file
+  - inizializzare i componenti
+  - gestire il loop NIO Selector su un thread dedicato
+  - passare i messaggi al CommandHandler tramite thread pool
+  - inviare notifiche UDP asincrone di fine partita
+  - persistere gli utenti su JSON
+  - shutdown ordinato
+
+Il parsing e la logica applicativa sono in CommandHandler */
+
 public class ServerMain {
 
-    // -------------------------------------------------------------------------
-    // Configurazione — letta da server.config (PDF §4)
-    // -------------------------------------------------------------------------
+    // Configurazione — letta da server.config 
     private final int    tcpPort;
     private final long   gameDurationSeconds;
     private final String puzzleFile;
@@ -47,18 +44,14 @@ public class ServerMain {
     private final int    bufferSize;
     private final int    numWorkers;
 
-    // -------------------------------------------------------------------------
     // Componenti
-    // -------------------------------------------------------------------------
     private final UserManager    userManager;
     private final GameManager    gameManager;
     private final CommandHandler commandHandler;
     private final PersistenceManager persistence;
     private final Gson           gson = new Gson();
 
-    // -------------------------------------------------------------------------
     // Rete
-    // -------------------------------------------------------------------------
     private ServerSocketChannel serverChannel;
     private Selector            selector;
     private DatagramSocket      udpSocket;
@@ -66,18 +59,14 @@ public class ServerMain {
     // Usato solo nel thread del selectionLoop → nessuna sincronizzazione necessaria
     private ByteBuffer readBuffer;
 
-    /**
-     * Mappa canale TCP → porta UDP del client.
-     * ConcurrentHashMap: acceduta dal selectionLoop (login/logout)
-     * e dallo scheduler di GameManager (broadcastGameResult).
-     */
+    /* Mappa canale TCP → porta UDP del client
+    ConcurrentHashMap: acceduta dal selectionLoop (login/logout)
+    e dallo scheduler di GameManager (broadcastGameResult) */
     private final Map<SocketChannel, Integer> udpPorts = new ConcurrentHashMap<>();
 
     private volatile boolean running = true;
 
-    // =========================================================================
     // COSTRUTTORE
-    // =========================================================================
     public ServerMain() throws IOException {
         Properties config = loadConfig("server.config");
 
@@ -90,9 +79,7 @@ public class ServerMain {
         this.numWorkers          = Integer.parseInt(config.getProperty("server.workers",               "4"));
 
         List<User> persisted = loadUsers();
-        this.userManager = persisted.isEmpty()
-                ? UserManager.createNew()
-                : UserManager.fromPersistedUsers(persisted);
+        this.userManager = persisted.isEmpty() ? UserManager.createNew() : UserManager.fromPersistedUsers(persisted);
 
         PuzzleReader puzzleReader = new PuzzleReader(puzzleFile);
         this.persistence = new PersistenceManager(usersFile, gamesDir, userManager);
@@ -104,9 +91,8 @@ public class ServerMain {
         this.commandHandler = new CommandHandler(userManager, gameManager, udpPorts, persistence);
     }
 
-    // =========================================================================
     // AVVIO
-    // =========================================================================
+        // Avvia le risorse di rete, il worker pool e il loop principale del server
     public void start() throws IOException {
         readBuffer = ByteBuffer.allocate(bufferSize);
 
@@ -157,9 +143,7 @@ public class ServerMain {
         }
     }
 
-    // =========================================================================
     // NIO — accept e read
-    // =========================================================================
 
     private static class ClientSession {
         final StringBuilder partialMessage = new StringBuilder();
@@ -177,14 +161,11 @@ public class ServerMain {
         System.out.println("[ACCEPT] " + client.getRemoteAddress());
     }
 
-    /**
-     * Legge il messaggio e lo consegna al worker pool.
-     *
-     * NIO pattern: il selectionLoop fa SOLO la read (veloce).
-     * L'elaborazione (parse JSON + logica) va su un worker thread.
-     *
-     * gestione con sistema per-client con delimitatore \n.
-     */
+    /* Legge il messaggio e lo consegna al worker pool
+    NIO pattern: il selectionLoop fa SOLO la read (veloce)
+    L'elaborazione (parse JSON + logica) va su un worker thread
+    gestione con sistema per-client con delimitatore \n */
+
     private void handleRead(SelectionKey key, ExecutorService workerPool) throws IOException {
         SocketChannel client = (SocketChannel) key.channel();
         ClientSession session = (ClientSession) key.attachment();
@@ -248,15 +229,12 @@ public class ServerMain {
         try { channel.close(); } catch (IOException ignored) {}
     }
 
-    // =========================================================================
     // UDP — notifica fine partita
-    // =========================================================================
 
-    /**
-     * Callback chiamato dallo scheduler di GameManager su un thread separato.
-     * Invia via UDP la notifica di fine partita + soluzione a tutti i client
-     * che hanno registrato un endpoint UDP al momento del login (PDF §3).
-     */
+    /* Callback chiamato dallo scheduler di GameManager su un thread separato
+    Invia via UDP la notifica di fine partita + soluzione a tutti i client
+    che hanno registrato un endpoint UDP al momento del login */
+
     private void onGameEnd(Game endedGame) {
         System.out.println("[GAME END] Partita " + endedGame.getGameId());
         persistence.saveCompletedGame(endedGame); 
@@ -367,14 +345,11 @@ public class ServerMain {
         return s.replace("\\", "\\\\").replace("\"", "\\\"");
     }
 
-    // =========================================================================
     // TCP — invio risposta
-    // =========================================================================
 
-    /**
-     * synchronized(channel): necessario perché più worker thread potrebbero
-     * tentare di scrivere sullo stesso canale contemporaneamente.
-     */
+    /* synchronized(channel): necessario perché più worker thread potrebbero
+    tentare di scrivere sullo stesso canale contemporaneamente */
+
     private void sendTcp(SocketChannel channel, String response) {
         try {
             ByteBuffer buf = ByteBuffer.wrap((response + "\n").getBytes(StandardCharsets.UTF_8));
@@ -391,25 +366,11 @@ public class ServerMain {
         }
     }
 
-    // =========================================================================
     // CONFIGURAZIONE E PERSISTENZA
-    // =========================================================================
 
-    /**
-     * Carica server.config (formato Properties Java standard).
-     * Se il file non esiste usa i valori di default dichiarati nelle chiamate
-     * a getProperty(..., "default"), quindi il server parte comunque.
-     *
-     * PDF §4: "i parametri devono essere letti da appositi file di configurazione"
-     *
-     * Esempio server.config:
-     *   server.tcp.port=5000
-     *   server.game.duration.seconds=120
-     *   server.puzzle.file=puzzles.json
-     *   server.users.file=users.json
-     *   server.buffer.size=4096
-     *   server.workers=4
-     */
+    /* Carica server.config (formato Properties Java standard)
+    Se il file non esiste usa i valori di default dichiarati nelle chiamate
+    a getProperty(..., "default"), quindi il server parte comunque  */
     private static Properties loadConfig(String path) {
         System.out.println("Java sta cercando file nella cartella: " + new File(".").getAbsolutePath());
         Properties p = new Properties();
@@ -448,18 +409,14 @@ public class ServerMain {
         }
     }
 
-    // =========================================================================
     // UTILITY
-    // =========================================================================
 
     private String safeAddr(SocketChannel ch) {
         try { return ch.getRemoteAddress().toString(); }
         catch (IOException e) { return "unknown"; }
     }
 
-    // =========================================================================
     // MAIN
-    // =========================================================================
     public static void main(String[] args) {
         try {
             new ServerMain().start();

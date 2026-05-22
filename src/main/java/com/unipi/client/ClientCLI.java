@@ -470,16 +470,16 @@ public class ClientCLI {
     }
 
     // UTILITY
-    
+
     private boolean isOk(JsonObject res) {
         return res != null && res.has("status") && "ok".equals(res.get("status").getAsString());
     }
 
     private void printError(JsonObject res) {
-        if (res == null) { System.out.println("✗ Errore: nessuna risposta."); return; }
+        if (res == null) { System.out.println("Errore: nessuna risposta."); return; }
         String code = res.has("errorCode") ? res.get("errorCode").getAsString() : "?";
         String msg  = res.has("message")   ? res.get("message").getAsString()   : res.toString();
-        System.out.println("✗ Errore [" + code + "]: " + msg);
+        System.out.println("Errore [" + code + "]: " + msg);
     }
 
     private int readInt(int defaultValue) {

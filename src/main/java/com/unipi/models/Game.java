@@ -7,9 +7,8 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.concurrent.ConcurrentHashMap;
 
-/**
- * Rappresenta una singola istanza di partita.
- * Questa classe è condivisa tra più thread (giocatori) e deve essere thread-safe.
+/*
+Rappresenta una singola istanza di partita.
  */
 public class Game {
 
@@ -32,9 +31,10 @@ public class Game {
     private final Map<String, PlayerGameState> playerStates;
 
     public Game(int gameId, List<String> words, Map<String, List<String>> connections, long durationMillis) {
+        
         this.gameId = gameId;
 
-        // Rendiamo le liste di parole e le connessioni immutabili (solo lettura)
+        // Rendo le liste di parole e le connessioni immutabili (solo lettura)
         // Così nessun thread può aggiungere o rimuovere parole dalla partita globale in corso
         this.words = Collections.unmodifiableList(new ArrayList<>(words));
         this.connections = Collections.unmodifiableMap(new HashMap<>(connections));

@@ -5,13 +5,9 @@ public class User {
     private String username;
     private String password;
 
-    //private int puzzlesCompleted; // per ottenerlo suo l'array puzzlesTracker
-    //private float winRate; // calcolo dinamicamente su array puzzlesTracker
-    //private float lossRate; // stesso di sopra 
     private int currentStreak;
     private int maxStreak;
     private int totalScore;
-    //private int perfectPuzzles;
     /* decido di usare un array per tenermi memorizzato delle partite:
     vinte con punteggio da 0 a 3 errori (dove n. errori saranno indici)
     perse per eccesso di errori (inidce 4)

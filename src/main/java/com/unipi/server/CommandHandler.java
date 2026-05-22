@@ -11,52 +11,41 @@ import com.unipi.models.User;
 import java.nio.channels.SocketChannel;
 import java.util.*;
 
-/**
- * Gestisce il parsing e il dispatch di tutti i comandi JSON.
- *
- * ServerMain si occupa di NIO e rete.
- * CommandHandler si occupa di protocollo e logica applicativa.
- *
- * È stateless rispetto alle singole richieste (nessun campo
- * cambia durante process()), quindi è thread-safe e può essere
- * condiviso tra tutti i thread del worker pool.
- */
+/*Gestisce il parsing e il dispatch di tutti i comandi JSON.
+ServerMain si occupa di NIO e rete.
+CommandHandler si occupa di protocollo e logica applicativa.
+È stateless rispetto alle singole richieste (nessun campo
+cambia durante process()), quindi è thread-safe e può essere
+condiviso tra tutti i thread del worker pool*/
+
 public class CommandHandler {
 
     private final UserManager userManager;
     private final GameManager gameManager;
 
     private final PersistenceManager persistence;
-    // Gson è thread-safe in lettura, ok condividerlo
     private final Gson gson = new Gson();
 
     // Mappa canale → porta UDP: serve qui per registrarla al login
     // e rimuoverla al logout. Passata per riferimento da ServerMain.
     private final Map<SocketChannel, Integer> udpPorts;
 
-    public CommandHandler(UserManager userManager,
-                          GameManager gameManager,
-                          Map<SocketChannel, Integer> udpPorts,
-                          PersistenceManager persistence) {
+    public CommandHandler(UserManager userManager, GameManager gameManager, 
+                          Map<SocketChannel, Integer> udpPorts, PersistenceManager persistence) {
         this.userManager = userManager;
         this.gameManager = gameManager;
         this.udpPorts    = udpPorts;
         this.persistence = persistence;
-        
+
     }
 
-    // =========================================================================
     // ENTRY POINT — chiamato dal worker pool per ogni messaggio ricevuto
-    // =========================================================================
 
-    /**
-     * Deserializza il messaggio JSON, legge il campo "operation"
-     * e smista al metodo handler corrispondente.
-     *
-     * @param message  stringa JSON ricevuta dal client
-     * @param channel  canale TCP del client (serve per identificare la sessione)
-     * @return         stringa JSON di risposta da inviare al client
-     */
+    /*Deserializza il messaggio JSON, legge il campo "operation" e smista al metodo handler corrispondente.
+    @param message  stringa JSON ricevuta dal client
+    @param channel  canale TCP del client (serve per identificare la sessione)
+    @return         stringa JSON di risposta da inviare al client*/
+
     public String process(String message, SocketChannel channel) {
         JsonObject peek;
         try {
@@ -85,11 +74,9 @@ public class CommandHandler {
         };
     }
 
-    // =========================================================================
     // HELPER — costruttori di risposta JSON
-    // =========================================================================
 
-    /** {"status":"ok","operation":"nomeOp"} — il chiamante aggiunge i campi extra */
+    // {"status":"ok","operation":"nomeOp"} e il chiamante aggiunge i campi extra 
     private JsonObject ok(String operation) {
         JsonObject o = new JsonObject();
         o.addProperty("status",    "ok");
@@ -97,7 +84,7 @@ public class CommandHandler {
         return o;
     }
 
-    /** {"status":"error","errorCode":"...","message":"..."} come stringa */
+    // {"status":"error","errorCode":"...","message":"..."} come stringa
     private String error(String code, String msg) {
         JsonObject o = new JsonObject();
         o.addProperty("status",    "error");
@@ -106,16 +93,13 @@ public class CommandHandler {
         return o.toString();
     }
 
-    // =========================================================================
     // HANDLER — gestione utente
-    // =========================================================================
 
     // {"operation":"register","name":"mario","psw":"1234"}
     private String handleRegister(String message) {
         RegisterRequest req = gson.fromJson(message, RegisterRequest.class);
 
-        if (req.getName() == null || req.getName().isBlank()
-                || req.getPsw() == null || req.getPsw().isBlank()) {
+        if (req.getName() == null || req.getName().isBlank() || req.getPsw() == null || req.getPsw().isBlank()) {
             return error("MISSING_PARAMS", "Campi 'name' e 'psw' obbligatori");
         }
 
@@ -126,15 +110,12 @@ public class CommandHandler {
         };
     }
 
-    /**
-     * {"operation":"login","username":"mario","psw":"1234"}
-     * + opzionale: "udpPort": 6000
-     *
-     * Il login include automaticamente lo stato della partita corrente (PDF §2.1).
-     * Se il client passa udpPort, il server lo salva in udpPorts per le notifiche asincrone.
-     *
-     * LoginRequest deve avere il campo: int udpPort (Gson lo lascia a 0 se assente).
-     */
+    // {"operation":"login","username":"mario","psw":"1234"} + opzionale: "udpPort": 6000
+    
+    /* Il login include automaticamente lo stato della partita corrente
+    Se il client passa udpPort, il server lo salva in udpPorts per le notifiche asincrone
+    LoginRequest deve avere il campo: int udpPort (Gson lo lascia a 0 se assente)*/
+
     private String handleLogin(String message, SocketChannel channel) {
         LoginRequest req = gson.fromJson(message, LoginRequest.class);
 
@@ -142,8 +123,7 @@ public class CommandHandler {
             return error("MISSING_PARAMS", "Campi 'username' e 'psw' obbligatori");
         }
 
-        UserManager.LoginResult result =
-                userManager.login(req.getUsername(), req.getPsw(), channel);
+        UserManager.LoginResult result = userManager.login(req.getUsername(), req.getPsw(), channel);
 
         if (result != UserManager.LoginResult.SUCCESS) {
             return switch (result) {
@@ -159,7 +139,7 @@ public class CommandHandler {
             udpPorts.put(channel, req.getUdpPort());
         }
 
-        // Costruisce la risposta con lo stato completo della partita (PDF §2.1)
+        // Costruisce la risposta con lo stato completo della partita
         JsonObject res = ok("login");
         res.addProperty("udpRegistered", req.getUdpPort() > 0);
 
@@ -202,13 +182,11 @@ public class CommandHandler {
         };
     }
 
-    /**
-     * {"operation":"updateCredentials","oldPsw":"...","newName":"...","newPsw":"..."}
-     * newName e newPsw sono o      pzionali (almeno uno deve essere valorizzato).
-     *
-     * UpdateCredentialsRequest: campi oldPsw (req), newName (opt), newPsw (opt).
-     * Il vecchio username viene preso dalla sessione TCP per sicurezza.
-     */
+    //{"operation":"updateCredentials","oldPsw":"...","newName":"...","newPsw":"..."}
+    /* newName e newPsw sono opzionali (almeno uno deve essere valorizzato)
+    UpdateCredentialsRequest: campi oldPsw (req), newName (opt), newPsw (opt)
+    Il vecchio username viene preso dalla sessione TCP per sicurezza*/
+
     private String handleUpdate(String message, SocketChannel channel) {
         User user = userManager.getUserByChannel(channel);
         if (user == null) return error("NOT_LOGGED_IN", "Devi essere loggato");
@@ -231,18 +209,13 @@ public class CommandHandler {
         };
     }
 
-    // =========================================================================
     // HANDLER — partita
-    // =========================================================================
 
-    /**
-     * {"operation":"submitProposal","words":["W1","W2","W3","W4"]}
-     *
-     * Proposta MALFORMATA (PDF §2.2): notificata come errore ma NON cambia
-     * lo stato della partita (niente errori aggiunti, niente punteggio).
-     *
-     * SubmitProposalRequest: campo List<String> words.
-     */
+    //{"operation":"submitProposal","words":["W1","W2","W3","W4"]}
+
+    /* Proposta MALFORMATA notificata come errore ma NON cambia lo stato della partita 
+    SubmitProposalRequest: campo List<String> words */
+
     private String handlePropose(String message, SocketChannel channel) {
         User user = userManager.getUserByChannel(channel);
         if (user == null) return error("NOT_LOGGED_IN", "Devi essere loggato");
@@ -252,8 +225,7 @@ public class CommandHandler {
             return error("MISSING_PARAMS", "Il campo 'words' deve contenere esattamente 4 parole");
         }
 
-        GameManager.ProposalResult result =
-                gameManager.submitProposal(user.getUsername(), req.getWords());
+        GameManager.ProposalResult result = gameManager.submitProposal(user.getUsername(), req.getWords());
 
         PlayerGameState state = currentState(user.getUsername());
 
@@ -261,7 +233,7 @@ public class CommandHandler {
             case CORRECT -> {
                 JsonObject r = ok("submitProposal");
                 r.addProperty("correct",     true);
-                r.addProperty("score",       state != null ? state.getScore()    : 0);
+                r.addProperty("score",       state != null ? state.getScore() : 0);
                 r.addProperty("hasFinished", state != null && state.hasFinished());
                 r.addProperty("isWinner",    state != null && state.isWinner());
                 yield r.toString();
@@ -281,18 +253,9 @@ public class CommandHandler {
         };
     }
 
-    /**
-     * {"operation":"requestGameInfo","gameId":-1}   → partita corrente (convenzione -1)
-     * {"operation":"requestGameInfo","gameId":42}   → partita storica
-     *
-     * GameInfoRequest: campo int gameId.
-     */
     
-    //forse va aggiunto controlisExpired perche if (state == null || !state.hasFinished()), 
-    // e dentro quel ramo accedi comunque a game.getRemainingTimeInSeconds().
-    //  Se per errore una partita storica venisse interrogata da un utente 
-    // che non ha state associato, il codice la tratterebbe come 
-    // “partita in corso per questo giocatore”, che semanticamente per uno storico non è ideale
+    //{"operation":"requestGameInfo","gameId":-1}   → partita corrente
+    //{"operation":"requestGameInfo","gameId":42}   → partita storica
 
     private String handleGameInfo(String message, SocketChannel channel) { 
         User user = userManager.getUserByChannel(channel);
@@ -352,11 +315,8 @@ public class CommandHandler {
         return res.toString();
     }
 
-    /**
-     * {"operation":"requestGameStats","gameId":-1}
-     *
-     * GameStatsRequest: campo int gameId.
-     */
+    // {"operation":"requestGameStats","gameId":-1}
+
     private String handleGameStats(String message, SocketChannel channel) {
         User user = userManager.getUserByChannel(channel);
         if (user == null) return error("NOT_LOGGED_IN", "Devi essere loggato");
@@ -386,18 +346,14 @@ public class CommandHandler {
         return res.toString();
     }
 
-    // =========================================================================
     // HANDLER — classifica e statistiche
-    // =========================================================================
 
-    /**
-     * Tre modalità (PDF §2.1):
-     *   {"operation":"requestLeaderboard"}                     → intera classifica
-     *   {"operation":"requestLeaderboard","topPlayers":10}     → top K
-     *   {"operation":"requestLeaderboard","playerName":"mario"} → rank di un giocatore
-     *
-     * LeaderboardRequest: campi String playerName (opt), int topPlayers (opt, 0 se assente).
-     */
+    //{"operation":"requestLeaderboard"}                     → intera classifica
+    //{"operation":"requestLeaderboard","topPlayers":10}     → top K
+    //{"operation":"requestLeaderboard","playerName":"mario"} → rank di un giocatore
+
+    //LeaderboardRequest: campi String playerName (opt), int topPlayers (opt, 0 se assente)
+
     private String handleLeaderboard(String message, SocketChannel channel) {
         if (userManager.getUserByChannel(channel) == null) {
             return error("NOT_LOGGED_IN", "Devi essere loggato");
@@ -437,11 +393,10 @@ public class CommandHandler {
         return res.toString();
     }
 
-    /**
-     * {"operation":"requestPlayerStats"}
-     * mistakeHistogram[i] = numero di partite concluse con i errori
-     *   0 = perfect, 1-3 = vinte con errori, 4 = perse per errori, 5 = perse per timeout
-     */
+    //{"operation":"requestPlayerStats"}
+    //mistakeHistogram[i] = numero di partite concluse con i errori
+    //0 = perfect, 1-3 = vinte con errori, 4 = perse per errori, 5 = perse per timeout
+
     private String handlePlayerStats(SocketChannel channel) {
         User user = userManager.getUserByChannel(channel);
         if (user == null) return error("NOT_LOGGED_IN", "Devi essere loggato");
@@ -463,24 +418,22 @@ public class CommandHandler {
         return res.toString();
     }
 
-    // =========================================================================
     // UTILITY
-    // =========================================================================
 
-    /** Risolve gameId: -1 = partita corrente, altro = storico. */
+    // Risolve gameId: -1 = partita corrente, altro = storico
     private Game resolveGame(int gameId) {
         return (gameId == -1)
                 ? gameManager.getCurrentGame()
                 : gameManager.getGame(gameId);
     }
 
-    /** Restituisce lo stato del giocatore nella partita corrente. Null-safe. */
+    // Restituisce lo stato del giocatore nella partita corrente e dovrebbe essere Null-safe
     private PlayerGameState currentState(String username) {
         Game game = gameManager.getCurrentGame();
         return (game != null) ? game.getPlayerState(username) : null;
     }
 
-    /** Converte stringa blank a null (usato per i campi opzionali). */
+    //Converte stringa blank a null (usato per i campi opzionali)
     private String blankToNull(String s) {
         return (s == null || s.isBlank()) ? null : s;
     }

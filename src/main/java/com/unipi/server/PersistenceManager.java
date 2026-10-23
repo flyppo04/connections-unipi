@@ -58,7 +58,7 @@ public class PersistenceManager {
     }
 
     // Serializza tutti gli utenti e li scrive su disco
-    public void saveUsers() {
+    public synchronized void saveUsers() {
         List<User> snapshot = new ArrayList<>(userManager.getAllUsers());
         writeJson(usersFile, snapshot);
         System.out.println("[PERSIST] Salvati " + snapshot.size() + " utenti.");

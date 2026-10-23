@@ -204,7 +204,14 @@ public class ServerMain {
 
             final String msg = message;
             workerPool.submit(() -> {
-                String response = commandHandler.process(msg, client);
+                String response;
+                try {
+                    response = commandHandler.process(msg, client);
+                } catch (Exception e) {
+                    // confine della richiesta: qualsiasi errore viene registrato e il client riceve comunque una risposta
+                    System.err.println("[WORKER ERR] richiesta non gestita: " + msg + " -> " + e);
+                    response = "{\"status\":\"error\",\"errorCode\":\"INVALID_REQUEST\",\"message\":\"Richiesta non valida\"}";
+                }
                 sendTcp(client, response);
             });
         }
@@ -388,7 +395,7 @@ public class ServerMain {
     private List<User> loadUsers() {
         File f = new File(usersFile);
         if (!f.exists()) { System.out.println("[PERSIST] Primo avvio."); return new ArrayList<>(); }
-        try (Reader r = new FileReader(f)) {
+        try (Reader r = new InputStreamReader(new FileInputStream(f), StandardCharsets.UTF_8)) {
             Type t = new TypeToken<List<User>>() {}.getType();
             List<User> list = gson.fromJson(r, t);
             System.out.println("[PERSIST] Caricati " + (list != null ? list.size() : 0) + " utenti.");
@@ -400,13 +407,7 @@ public class ServerMain {
     }
 
     private void saveUsers() {
-        List<User> snapshot = new ArrayList<>(userManager.getAllUsers());
-        try (Writer w = new FileWriter(usersFile)) {
-            gson.toJson(snapshot, w);
-            System.out.println("[PERSIST] Salvati " + snapshot.size() + " utenti.");
-        } catch (IOException e) {
-            System.err.println("[PERSIST] Errore salvataggio: " + e.getMessage());
-        }
+        persistence.saveUsers();
     }
 
     // UTILITY

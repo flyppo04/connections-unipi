@@ -93,7 +93,7 @@ public class PlayerGameState {
         return correctGroupsFound.size();
     }
     
-    // Qui dentro metti i metodi specifici per l'utente, es:
+    /// Registra una proposta sbagliata: -4 punti, e al quarto errore la partita è persa
     public synchronized  void addMistake() {
         if (hasFinished) return;
         this.mistakes++;

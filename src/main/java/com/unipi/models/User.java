@@ -130,10 +130,7 @@ public class User {
 
     }
 
-    // Getter per il punteggio totale (serve per la classifica)
-    // Si calcola sommando tutti i punteggi delle partite giocate.
-    // Per ora puoi aggiungerlo come campo separato da aggiornare 
-    // ogni volta che una partita finisce:
+    // Punteggio totale (usato per la classifica), aggiornato a ogni partita conclusa
     
     public synchronized int getTotalScore() {
         return totalScore;

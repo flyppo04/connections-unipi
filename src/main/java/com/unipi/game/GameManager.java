@@ -176,8 +176,7 @@ public class GameManager {
             String matchedTheme = findMatchingGroup(words, game, state);
     
             if (matchedTheme != null) {
-                // Proposta corretta — passa tema e parole a addCorrectGroup()
-                // come si aspetta la firma del tuo PlayerGameState
+                // Proposta corretta: registra il gruppo trovato nello stato del giocatore
                 List<String> groupWords = game.getConnections().get(matchedTheme);
                 state.addCorrectGroup(matchedTheme, groupWords);
 
@@ -234,7 +233,7 @@ public class GameManager {
             // submitProposal chiudano/modifichino contemporaneamente lo stesso player.
             synchronized (state){
                 if (!state.hasFinished()) {
-                    state.forceTimeOut();  // usa il tuo metodo forceTimeOut()
+                    state.forceTimeOut();  
                     updateUserStatsOnTimeout(username, state);
                 }
             }

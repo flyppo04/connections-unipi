@@ -156,7 +156,7 @@ public class ServerMain {
         client.configureBlocking(false);
         
         ClientSession session = new ClientSession();
-        client.register(selector, SelectionKey.OP_READ, session);  // ← 1 riga!
+        client.register(selector, SelectionKey.OP_READ, session);  
         
         System.out.println("[ACCEPT] " + client.getRemoteAddress());
     }
@@ -326,7 +326,6 @@ public class ServerMain {
 
     private String buildNewGameNotification(User user, Game game) {
         List<String> words = game.getWords(); 
-        // oppure game.getWords(), in base a come hai modellato Game
 
         long remainingSeconds = game.getRemainingTimeInSeconds();
 
@@ -379,7 +378,6 @@ public class ServerMain {
     Se il file non esiste usa i valori di default dichiarati nelle chiamate
     a getProperty(..., "default"), quindi il server parte comunque  */
     private static Properties loadConfig(String path) {
-        System.out.println("Java sta cercando file nella cartella: " + new File(".").getAbsolutePath());
         Properties p = new Properties();
         try (InputStream in = new FileInputStream(path)) {
             p.load(in);

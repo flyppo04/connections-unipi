@@ -24,7 +24,8 @@ public class UserManager {
         SUCCESS,
         USER_NOT_FOUND,
         WRONG_PASSWORD,
-        ALREADY_LOGGED_IN
+        ALREADY_LOGGED_IN,
+        SESSION_ALREADY_ACTIVE
     }
 
     public enum LogoutResult {
@@ -139,6 +140,12 @@ public class UserManager {
         }
 
         synchronized (userStateLock) {
+
+            // una connessione = un utente: se il canale ha già una sessione, prima serve il logout
+            if (channelToUser.containsKey(channel)) {
+                return LoginResult.SESSION_ALREADY_ACTIVE;
+            }
+
             //devo controllare se è gia loggato dentro al lock altrimenti potrei tentare di loggarlo due volte 
             if (loggedInUsers.containsKey(username)) {
                 return LoginResult.ALREADY_LOGGED_IN;

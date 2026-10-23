@@ -130,6 +130,7 @@ public class CommandHandler {
                 case USER_NOT_FOUND    -> error("USER_NOT_FOUND",    "Utente non trovato");
                 case WRONG_PASSWORD   -> error("WRONG_PASSWORD",    "Password errata");
                 case ALREADY_LOGGED_IN -> error("ALREADY_LOGGED_IN", "Utente già loggato");
+                case SESSION_ALREADY_ACTIVE -> error("SESSION_ALREADY_ACTIVE", "Hai già effettuato il login: fai prima il logout");
                 default              -> error("LOGIN_FAILED",      "Login fallito");
             };
         }

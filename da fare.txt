@@ -1,5 +1,0 @@
-controllare e sitemare robe in note
-scrivere commenti
-pulire codice
-scrivere documentazione
-capire se notifiche udp devono arrivare solo se loggato

@@ -200,6 +200,19 @@ public class CommandHandler {
         String newName = blankToNull(req.getNewName());
         String newPsw  = blankToNull(req.getNewPsw());
 
+        // Lo stato in partita è legato allo username: cambiarlo mentre la propria partita
+        // è in corso lo azzererebbe. La password invece si può cambiare sempre.
+        if (newName != null && !newName.equals(user.getUsername())) {
+            Game game = gameManager.getCurrentGame();
+            if (game != null && !game.isExpired()) {
+                PlayerGameState state = game.getPlayerState(user.getUsername());
+                if (state != null && !state.hasFinished()) {
+                    return error("GAME_IN_PROGRESS",
+                            "Non puoi cambiare username durante una partita in corso: puoi cambiare la password");
+                }
+            }
+        }
+
         return switch (userManager.updateCredentials(user.getUsername(),
                 req.getOldPsw(), newName, newPsw)) {
             case SUCCESS          -> {persistence.saveUsers(); yield ok("updateCredentials").toString();}

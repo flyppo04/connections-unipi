@@ -495,8 +495,8 @@ public class ClientCLI {
     private float getFloat(JsonObject o, String k, float d) { return o.has(k) && !o.get(k).isJsonNull() ? o.get(k).getAsFloat() : d; }
 
     private void printBanner() {
-        System.out.println("╔══════════════════════════════════════╗");
-        System.out.println("║     CONNECTIONS - UniPi Edition      ║");
-        System.out.println("╚══════════════════════════════════════╝");
+        System.out.println("========================================");
+        System.out.println("      CONNECTIONS - UniPi Edition       ");
+        System.out.println("========================================");
     }
 }

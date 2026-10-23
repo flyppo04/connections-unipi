@@ -70,9 +70,9 @@ public class UdpListener implements Runnable {
     }
 
     private void handleGameEnd(JsonObject msg) {
-        System.out.println("\n╔══════════════════════════════════════╗");
-        System.out.println(  "║         PARTITA TERMINATA!           ║");
-        System.out.println(  "╚══════════════════════════════════════╝");
+        System.out.println("\n========================================");
+        System.out.println(  "          PARTITA TERMINATA!            ");
+        System.out.println(  "========================================");
 
         if (msg.has("totalPlayers"))    System.out.println("  Giocatori totali  : " + msg.get("totalPlayers").getAsInt());
         if (msg.has("playersFinished")) System.out.println("  Hanno finito      : " + msg.get("playersFinished").getAsInt());
@@ -97,9 +97,9 @@ public class UdpListener implements Runnable {
     }
 
     private void handleNewGame(JsonObject msg) {
-        System.out.println("\n╔══════════════════════════════════════╗");
-        System.out.println(  "║       NUOVA PARTITA INIZIATA!        ║");
-        System.out.println(  "╚══════════════════════════════════════╝");
+        System.out.println("\n========================================");
+        System.out.println(  "        NUOVA PARTITA INIZIATA!         ");
+        System.out.println(  "========================================");
         if (msg.has("gameId"))        System.out.println("  Game ID           : " + msg.get("gameId").getAsInt());
         if (msg.has("remainingTime")) System.out.println("  Tempo disponibile : " + msg.get("remainingTime").getAsLong() + "s");
         if (msg.has("words")) {
